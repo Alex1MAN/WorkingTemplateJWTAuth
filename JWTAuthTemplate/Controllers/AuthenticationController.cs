@@ -67,8 +67,8 @@ namespace JWTAuthTemplate.Controllers
                 {
                     return BadRequest(result.Errors);
                 }
-
-                return Ok("User created successfully!");
+                //return Ok("User created successfully!");
+                return Ok(new { success = true, message = "User created successfully!" });
             }
             catch (Exception e)
             {
