@@ -26,6 +26,33 @@ namespace JWTAuthTemplate.Controllers
         }
 
         [HttpPost("upload-file")]
+        public async Task<IActionResult> UploadFile(string bucketName, string fileName, [FromBody] byte[] fileData)
+        {
+            if (fileData == null || fileData.Length == 0)
+            {
+                return BadRequest("File data cannot be null or empty.");
+            }
+            // Создаем временный файл
+            var tempFilePath = Path.GetTempFileName();
+            try
+            {
+                await System.IO.File.WriteAllBytesAsync(tempFilePath, fileData);
+                // Вызываем метод загрузки по пути временного файла
+                await _minioService.UploadFileAsync(bucketName, fileName, tempFilePath);
+            }
+            finally
+            {
+                // Удаляем временный файл
+                if (System.IO.File.Exists(tempFilePath))
+                {
+                    System.IO.File.Delete(tempFilePath);
+                }
+            }
+            return Ok($"File {fileName} uploaded to bucket {bucketName}.");
+        }
+        /*
+        // Тестовый метод ниже
+        [HttpPost("upload-file")]
         public async Task<IActionResult> UploadFile(string bucketName, string filePath)
         {
             if (!System.IO.File.Exists(filePath))
@@ -35,6 +62,7 @@ namespace JWTAuthTemplate.Controllers
             await _minioService.UploadFileAsync(bucketName, Path.GetFileName(filePath), filePath);
             return Ok($"File {Path.GetFileName(filePath)} uploaded to bucket {bucketName}.");
         }
+        */
 
         [HttpGet("get-file")]
         public async Task<IActionResult> GetFile(string bucketName, string objectName)
