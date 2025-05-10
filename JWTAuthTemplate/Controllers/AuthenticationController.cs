@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Minio;
 
 namespace JWTAuthTemplate.Controllers
 {
@@ -27,12 +28,15 @@ namespace JWTAuthTemplate.Controllers
         private readonly IConfiguration _configuration;
         private readonly IOptionsMonitor<JwtBearerOptions> _jwtOptions;
 
-        public AuthenticationController(UserManager<ApplicationUser> signInManager, IConfiguration configuration, RoleManager<ApplicationRole> roleManager, IOptionsMonitor<JwtBearerOptions> jwtOptions)
+        private readonly MinioService _minioService;
+
+        public AuthenticationController(UserManager<ApplicationUser> signInManager, IConfiguration configuration, RoleManager<ApplicationRole> roleManager, IOptionsMonitor<JwtBearerOptions> jwtOptions, MinioService minioService)
         {
             _userManager = signInManager;
             _configuration = configuration;
             _roleManager = roleManager;
             _jwtOptions = jwtOptions;
+            _minioService = minioService;
         }
 
         [HttpPost("Register")]
@@ -51,6 +55,7 @@ namespace JWTAuthTemplate.Controllers
                 return BadRequest("That email is already in use!");
             }
 
+            string bucketName = "";
             var user = new ApplicationUser()
             {
                 Id = Guid.NewGuid().ToString(),
@@ -59,6 +64,8 @@ namespace JWTAuthTemplate.Controllers
                 UserName = registration.Username,
                 CreateDate = DateTime.UtcNow,
             };
+            bucketName = user.Id;
+            Console.WriteLine("bucketName:" + bucketName);
 
             try
             {
@@ -68,7 +75,11 @@ namespace JWTAuthTemplate.Controllers
                     return BadRequest(result.Errors);
                 }
                 //return Ok("User created successfully!");
-                return Ok(new { success = true, message = "User created successfully!" });
+                
+                // Создаем бакет в minio
+                await _minioService.CreateBucketAsync(bucketName);
+
+                return Ok(new { success = true, message = "User (and bucket in Minio) created successfully!" });
             }
             catch (Exception e)
             {
