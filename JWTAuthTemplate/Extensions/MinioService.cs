@@ -1,9 +1,9 @@
 ﻿using JWTAuthTemplate.DTO.Identity;
-using JWTAuthTemplate.Migrations;
 using Microsoft.Extensions.Options;
 using Minio;
 using Minio.DataModel;
 using Minio.DataModel.Args;
+using Minio.Exceptions;
 using System.Threading.Tasks;
 
 namespace JWTAuthTemplate.Extensions
@@ -41,24 +41,19 @@ namespace JWTAuthTemplate.Extensions
                 .WithContentType("application/octet-stream"));
         }
 
-        public async Task<IResult> GetFileAsync(string bucketName, string objectName)
+        public async Task<Stream> GetFileAsync(string bucketName, string objectName)
         {
-            /*var presignedUrl = await _minioClient.PresignedGetObjectAsync(new PresignedGetObjectArgs()
-                .WithBucket(bucketName)
-                .WithExpiry(3600)
-                .WithObject(objectName));
-            return presignedUrl;*/
-
             var memoryStream = new MemoryStream();
-            await _minioClient.GetObjectAsync(new GetObjectArgs()
+            var getObjectArgs = new GetObjectArgs()
                 .WithBucket(bucketName)
                 .WithObject(objectName)
-                .WithCallbackStream(async stream => await stream.CopyToAsync(memoryStream))
-            );
-
-
+                .WithCallbackStream(stream =>
+                {
+                    stream.CopyTo(memoryStream);
+                });
+            await _minioClient.GetObjectAsync(getObjectArgs);
             memoryStream.Position = 0;
-            return Results.File(memoryStream, "application/octet-stream", objectName);
+            return memoryStream;
         }
     }
 }

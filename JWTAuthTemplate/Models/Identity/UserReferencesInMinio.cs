@@ -2,7 +2,8 @@
 {
     public class UserReferencesInMinio
     {
-        public string IdUser { get; set; }
-        public string MinioReference { get; set; }
+        public int Id { get; set; }
+        public string UserId { get; set; }
+        public string FileReferenceMinio { get; set; }
     }
 }

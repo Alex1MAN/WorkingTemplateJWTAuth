@@ -55,6 +55,34 @@ namespace JWTAuthTemplate.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UserProfilesMinio",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserName = table.Column<string>(type: "text", nullable: false),
+                    ExternalMinioKey = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserProfilesMinio", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserReferencesInMinio",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    FileReferenceMinio = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserReferencesInMinio", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {
@@ -215,6 +243,12 @@ namespace JWTAuthTemplate.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUserTokens");
+
+            migrationBuilder.DropTable(
+                name: "UserProfilesMinio");
+
+            migrationBuilder.DropTable(
+                name: "UserReferencesInMinio");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");

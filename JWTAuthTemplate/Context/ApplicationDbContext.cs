@@ -9,6 +9,7 @@ namespace JWTAuthTemplate.Context
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
         public DbSet<UserProfileMinio> UserProfilesMinio { get; set; }
+        public DbSet<UserReferencesInMinio> UserReferencesInMinio { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

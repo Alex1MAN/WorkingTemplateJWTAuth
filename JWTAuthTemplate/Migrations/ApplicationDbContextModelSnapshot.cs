@@ -248,6 +248,27 @@ namespace JWTAuthTemplate.Migrations
                     b.ToTable("UserProfilesMinio");
                 });
 
+            modelBuilder.Entity("JWTAuthTemplate.Models.Identity.UserReferencesInMinio", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FileReferenceMinio")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserReferencesInMinio");
+                });
+
             modelBuilder.Entity("JWTAuthTemplate.Models.Identity.ApplicationRoleClaim", b =>
                 {
                     b.HasOne("JWTAuthTemplate.Models.Identity.ApplicationRole", null)

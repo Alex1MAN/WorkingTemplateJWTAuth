@@ -1,5 +1,6 @@
-﻿using JWTAuthTemplate.Extensions;
-using JWTAuthTemplate.Migrations;
+﻿using JWTAuthTemplate.Context;
+using JWTAuthTemplate.Extensions;
+using JWTAuthTemplate.Models.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Minio;
 using Minio.DataModel.Args;
@@ -14,10 +15,12 @@ namespace JWTAuthTemplate.Controllers
     public class MinioController : ControllerBase
     {
         private readonly MinioService _minioService;
+        private readonly ApplicationDbContext _context;
 
-        public MinioController(MinioService minioService)
+        public MinioController(MinioService minioService, ApplicationDbContext context)
         {
             _minioService = minioService;
+            _context = context;
         }
 
         [HttpPost("create-bucket")]
@@ -103,16 +106,26 @@ namespace JWTAuthTemplate.Controllers
         }
 
         // Тестовый метод ниже
-        /*[HttpPost("test-upload-file-direct-reference")]
-        public async Task<IActionResult> UploadFile(string bucketName, string filePath)
+        [HttpPost("test-upload-file-direct-reference")]
+        public async Task<IActionResult> TestUploadFile(string bucketName, string filePath)
         {
             if (!System.IO.File.Exists(filePath))
             {
                 return NotFound($"File {Path.GetFileName(filePath)} not found.");
             }
             await _minioService.UploadFileAsync(bucketName, Path.GetFileName(filePath), filePath);
+            
             return Ok($"File {Path.GetFileName(filePath)} uploaded to bucket {bucketName}.");
-        }*/
+        }
+
+        [HttpPost("add-minio-reference-in-postgre")]
+        public async Task<IActionResult> AddReferenceInPostgre(UserReferencesInMinio userReferencesInMinio)
+        {
+            _context.UserReferencesInMinio.Add(userReferencesInMinio);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction("GetUserReference", new { id = userReferencesInMinio.Id }, userReferencesInMinio);
+        }
 
 
         /*[HttpGet("get-file")]
@@ -123,19 +136,18 @@ namespace JWTAuthTemplate.Controllers
         }*/
 
 
-        [HttpGet("{bucketName}/{objectName}")]
-        public async Task<IActionResult> GetFileContent(string bucketName, string objectName)
+        [HttpGet("{bucketName}/{fileName}")]
+        public async Task<IActionResult> GetFileContent(string bucketName, string fileName)
         {
-            var result = await _minioService.GetFileAsync(bucketName, objectName);
-
-            // Проверяем, является ли результат успешным
-            if (result is FileResult fileResult)
+            try
             {
-                return fileResult; // Возвращаем файл
+                var stream = await _minioService.GetFileAsync(bucketName, fileName);
+                return File(stream, "application/octet-stream", fileName);
             }
-
-            // Если произошла ошибка, возвращаем статус 500
-            return StatusCode(500, "Error retrieving file.");
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
     }
 }
