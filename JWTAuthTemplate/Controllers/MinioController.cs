@@ -2,6 +2,7 @@
 using JWTAuthTemplate.Extensions;
 using JWTAuthTemplate.Models.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Minio;
 using Minio.DataModel.Args;
 using System.IO;
@@ -118,15 +119,25 @@ namespace JWTAuthTemplate.Controllers
             return Ok($"File {Path.GetFileName(filePath)} uploaded to bucket {bucketName}.");
         }
 
-        [HttpPost("add-minio-reference-in-postgre")]
+        [HttpPost]
         public async Task<IActionResult> AddReferenceInPostgre(UserReferencesInMinio userReferencesInMinio)
         {
             _context.UserReferencesInMinio.Add(userReferencesInMinio);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetUserReference", new { id = userReferencesInMinio.Id }, userReferencesInMinio);
+            return CreatedAtAction("AddReferenceInPostgre", new { id = userReferencesInMinio.Id }, userReferencesInMinio);
         }
 
+        [HttpGet("files/{userId}")]
+        public async Task<IActionResult> GetFileReferencesByUserId(string userId)
+        {
+            var fileReferences = await _context.UserReferencesInMinio
+                .Where(u => u.UserId == userId)
+                .Select(u => u.FileReferenceMinio)
+                .ToListAsync();
+
+            return Ok(fileReferences);
+        }
 
         /*[HttpGet("get-file")]
         public async Task<IActionResult> GetFile(string bucketName, string objectName)
