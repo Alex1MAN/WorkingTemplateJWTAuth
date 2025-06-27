@@ -256,6 +256,14 @@ namespace JWTAuthTemplate.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("FileExtension")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("FileReferenceMinio")
                         .IsRequired()
                         .HasColumnType("text");

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace JWTAuthTemplate.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250606174358_Init")]
+    [Migration("20250627163030_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -258,6 +258,14 @@ namespace JWTAuthTemplate.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FileExtension")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("FileReferenceMinio")
                         .IsRequired()

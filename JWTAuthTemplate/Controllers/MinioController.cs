@@ -133,7 +133,12 @@ namespace JWTAuthTemplate.Controllers
         {
             var fileReferences = await _context.UserReferencesInMinio
                 .Where(u => u.UserId == userId)
-                .Select(u => u.FileReferenceMinio)
+                .Select(u => new
+                {
+                    u.FileName,
+                    u.FileExtension,
+                    u.FileReferenceMinio
+                })
                 .ToListAsync();
 
             return Ok(fileReferences);
