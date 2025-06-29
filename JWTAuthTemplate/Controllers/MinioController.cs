@@ -4,6 +4,11 @@ using JWTAuthTemplate.Models.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Minio;
+
+using System.Data;
+using ExcelDataReader;
+using Newtonsoft.Json;
+
 using Minio.DataModel.Args;
 using System.IO;
 using System.Security.AccessControl;
@@ -159,6 +164,20 @@ namespace JWTAuthTemplate.Controllers
             {
                 var stream = await _minioService.GetFileAsync(bucketName, fileName);
                 return File(stream, "application/octet-stream", fileName);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("file/table")]
+        public async Task<IActionResult> GetTableFromExcel(string bucketName, string fileName)
+        {
+            try
+            {
+                var resultTable = await _minioService.GetExcelFileContentAsJson(bucketName, fileName);
+                return Ok(resultTable);
             }
             catch (Exception ex)
             {
