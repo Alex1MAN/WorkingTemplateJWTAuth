@@ -171,12 +171,26 @@ namespace JWTAuthTemplate.Controllers
             }
         }
 
-        [HttpGet("file/table")]
+        [HttpGet("get-all-table")]
         public async Task<IActionResult> GetTableFromExcel(string bucketName, string fileName)
         {
             try
             {
                 var resultTable = await _minioService.GetExcelFileContentAsJson(bucketName, fileName);
+                return Ok(resultTable);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("get-table-with-limits")]
+        public async Task<IActionResult> GetTableFromExcelWithLimits(string bucketName, string fileName, double inputX1, double inputX2, double inputY1, double inputY2)
+        {
+            try
+            {
+                var resultTable = await _minioService.GetExcelFileContentAsJsonWithLimits(bucketName, fileName, inputX1, inputX2, inputY1, inputY2);
                 return Ok(resultTable);
             }
             catch (Exception ex)

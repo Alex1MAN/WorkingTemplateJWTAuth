@@ -74,9 +74,7 @@ namespace JWTAuthTemplate.Extensions
             await _minioClient.GetObjectAsync(getObjectArgs);
             memoryStream.Position = 0;
 
-            // ms = memoryStream
-
-            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             using var reader = ExcelReaderFactory.CreateReader(memoryStream);
             var result = reader.AsDataSet();
             var table = result.Tables[0];
@@ -139,6 +137,107 @@ namespace JWTAuthTemplate.Extensions
                     sb.Append("\n");
             }
             sb.Append("    ]\n  ]\n}");
+            return sb.ToString();
+        }
+
+        public async Task<string> GetExcelFileContentAsJsonWithLimits(string bucketName, string objectName, double inputX1, double inputX2, double inputY1, double inputY2)
+        {
+            var memoryStream = new MemoryStream();
+            var getObjectArgs = new GetObjectArgs()
+                .WithBucket(bucketName)
+                .WithObject(objectName)
+                .WithCallbackStream(stream =>
+                {
+                    stream.CopyTo(memoryStream);
+                });
+            await _minioClient.GetObjectAsync(getObjectArgs);
+            memoryStream.Position = 0;
+
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            using var reader = ExcelReaderFactory.CreateReader(memoryStream);
+            var result = reader.AsDataSet();
+            var table = result.Tables[0];
+
+            // Считаем labels из первой строки и пытаемся преобразовать в double
+            var labels = new List<string>();
+            var labelDoubles = new List<double?>();
+            for (int col = 0; col < table.Columns.Count; col++)
+            {
+                string labelStr = table.Rows[0][col]?.ToString() ?? "";
+                labels.Add(labelStr);
+
+                if (double.TryParse(labelStr, out double d))
+                    labelDoubles.Add(d);
+                else
+                    labelDoubles.Add(null);
+            }
+
+            // Фильтруем столбцы по x1 и x2 (включительно), только те, где label можно преобразовать в double и входит в диапазон
+            var filteredCols = new List<int>();
+            for (int i = 0; i < labelDoubles.Count; i++)
+            {
+                if (labelDoubles[i].HasValue)
+                {
+                    double val = labelDoubles[i].Value;
+                    if (val >= Math.Min(inputX1, inputX2) && val <= Math.Max(inputX1, inputX2))
+                        filteredCols.Add(i);
+                }
+            }
+
+            // Начинаем строить JSON
+            var sb = new StringBuilder();
+            sb.Append("{\n  \"labels\": [");
+
+            // Добавляем labels выбранных столбцов
+            for (int i = 0; i < filteredCols.Count; i++)
+            {
+                sb.Append($"\"{EscapeJson(labels[filteredCols[i]])}\"");
+                if (i < filteredCols.Count - 1)
+                    sb.Append(", ");
+            }
+            sb.Append("],\n  \"values\": [\n    [\n");
+
+            // Для каждого выбранного столбца формируем объект с повторяющимися ключами,
+            // но только для тех значений, которые попадают в диапазон y1..y2 (по значению ячейки)
+            for (int colIndex = 0; colIndex < filteredCols.Count; colIndex++)
+            {
+                int col = filteredCols[colIndex];
+                sb.Append("      {");
+                string label = EscapeJson(labels[col]);
+
+                // Собираем значения, удовлетворяющие условию y1 <= value <= y2
+                var filteredValues = new List<string>();
+                for (int row = 1; row < table.Rows.Count; row++) // строки данных без заголовка
+                {
+                    string cellStr = table.Rows[row][col]?.ToString() ?? "";
+                    if (double.TryParse(cellStr, out double cellValue))
+                    {
+                        if (cellValue >= Math.Min(inputY1, inputY2) && cellValue <= Math.Max(inputY1, inputY2))
+                            filteredValues.Add(cellStr);
+                    }
+                    else
+                    {
+                        // Если не число — игнорируем
+                    }
+                }
+
+                // Если нет значений — можно либо пропустить, либо вернуть пустой объект с ключом
+                // Здесь вернём пустой объект с ключом и без значений
+                for (int i = 0; i < filteredValues.Count; i++)
+                {
+                    sb.Append($"\"{label}\": \"{EscapeJson(filteredValues[i])}\"");
+                    if (i < filteredValues.Count - 1)
+                        sb.Append(", ");
+                }
+                sb.Append("}");
+                if (colIndex < filteredCols.Count - 1)
+                    sb.Append(",\n");
+                else
+                    sb.Append("\n");
+            }
+
+            sb.Append("    ]\n  ]\n}");
+
             return sb.ToString();
         }
 
