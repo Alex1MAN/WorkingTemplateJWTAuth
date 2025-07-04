@@ -84,28 +84,6 @@ namespace JWTAuthTemplate.Extensions
             for (int col = 0; col < table.Columns.Count; col++)
                 labels.Add(table.Rows[0][col]?.ToString() ?? "");
 
-            // 2. values: массив массивов, где каждый подмассив — объект {label: [значения]}
-            /*
-            var values = new List<List<Dictionary<string, List<string>>>>();
-            var valueRow = new List<Dictionary<string, List<string>>>();
-            for (int col = 0; col < table.Columns.Count; col++)
-            {
-                var colValues = new List<string>();
-                for (int row = 1; row < table.Rows.Count; row++)
-                {
-                    colValues.Add(table.Rows[row][col]?.ToString() ?? "");
-                }
-                valueRow.Add(new Dictionary<string, List<string>> { { labels[col], colValues } });
-            }
-            values.Add(valueRow);
-            var resultObj = new
-            {
-                labels,
-                values
-            };
-            return JsonConvert.SerializeObject(resultObj, Formatting.Indented);
-            */
-
             // Начинаем строить JSON вручную (как хотят на фронте)
             var sb = new StringBuilder();
             sb.Append("{\n  \"labels\": [");
@@ -117,25 +95,26 @@ namespace JWTAuthTemplate.Extensions
                     sb.Append(", ");
             }
             sb.Append("],\n  \"values\": [\n    [\n");
-            // Для каждого столбца формируем объект с повторяющимися ключами
-            for (int col = 0; col < table.Columns.Count; col++)
+
+            // Формируем JSON по строкам, начиная со второй (index 1)
+            for (int row = 1; row < table.Rows.Count; row++)
             {
                 sb.Append("      {");
-                string label = EscapeJson(labels[col]);
-                // Добавляем повторяющиеся ключи с их значениями из каждой строки
-                for (int row = 1; row < table.Rows.Count; row++)
+                for (int col = 0; col < table.Columns.Count; col++)
                 {
+                    string label = EscapeJson(labels[col]);
                     string cellValue = EscapeJson(table.Rows[row][col]?.ToString() ?? "");
                     sb.Append($"\"{label}\": \"{cellValue}\"");
-                    if (row < table.Rows.Count - 1)
+                    if (col < table.Columns.Count - 1)
                         sb.Append(", ");
                 }
                 sb.Append("}");
-                if (col < table.Columns.Count - 1)
+                if (row < table.Rows.Count - 1)
                     sb.Append(",\n");
                 else
                     sb.Append("\n");
             }
+
             sb.Append("    ]\n  ]\n}");
             return sb.ToString();
         }
@@ -172,23 +151,25 @@ namespace JWTAuthTemplate.Extensions
                     labelDoubles.Add(null);
             }
 
-            // Фильтруем столбцы по x1 и x2 (включительно), только те, где label можно преобразовать в double и входит в диапазон
+            // Фильтруем столбцы по x1 и x2 (включительно)
             var filteredCols = new List<int>();
+            double minX = Math.Min(inputX1, inputX2);
+            double maxX = Math.Max(inputX1, inputX2);
             for (int i = 0; i < labelDoubles.Count; i++)
             {
                 if (labelDoubles[i].HasValue)
                 {
                     double val = labelDoubles[i].Value;
-                    if (val >= Math.Min(inputX1, inputX2) && val <= Math.Max(inputX1, inputX2))
+                    if (val >= minX && val <= maxX)
                         filteredCols.Add(i);
                 }
             }
 
-            // Начинаем строить JSON
+            double minY = Math.Min(inputY1, inputY2);
+            double maxY = Math.Max(inputY1, inputY2);
+
             var sb = new StringBuilder();
             sb.Append("{\n  \"labels\": [");
-
-            // Добавляем labels выбранных столбцов
             for (int i = 0; i < filteredCols.Count; i++)
             {
                 sb.Append($"\"{EscapeJson(labels[filteredCols[i]])}\"");
@@ -197,47 +178,48 @@ namespace JWTAuthTemplate.Extensions
             }
             sb.Append("],\n  \"values\": [\n    [\n");
 
-            // Для каждого выбранного столбца формируем объект с повторяющимися ключами,
-            // но только для тех значений, которые попадают в диапазон y1..y2 (по значению ячейки)
-            for (int colIndex = 0; colIndex < filteredCols.Count; colIndex++)
+            // Формируем JSON по строкам (начиная со второй строки — index 1)
+            for (int row = 1; row < table.Rows.Count; row++)
             {
-                int col = filteredCols[colIndex];
                 sb.Append("      {");
-                string label = EscapeJson(labels[col]);
-
-                // Собираем значения, удовлетворяющие условию y1 <= value <= y2
-                var filteredValues = new List<string>();
-                for (int row = 1; row < table.Rows.Count; row++) // строки данных без заголовка
+                for (int i = 0; i < filteredCols.Count; i++)
                 {
+                    int col = filteredCols[i];
+                    string label = EscapeJson(labels[col]);
                     string cellStr = table.Rows[row][col]?.ToString() ?? "";
+
+                    // Пытаемся преобразовать в double
                     if (double.TryParse(cellStr, out double cellValue))
                     {
-                        if (cellValue >= Math.Min(inputY1, inputY2) && cellValue <= Math.Max(inputY1, inputY2))
-                            filteredValues.Add(cellStr);
+                        // Корректируем значение по границам y
+                        if (cellValue < minY)
+                            cellValue = minY;
+                        else if (cellValue > maxY)
+                            cellValue = maxY;
+
+                        // Используем формат с запятой, если нужно (например, "0,055"), 
+                        // иначе ToString(CultureInfo.InvariantCulture) для точки
+                        // Здесь возьмём текущую культуру (можно заменить при необходимости)
+                        cellStr = cellValue.ToString(System.Globalization.CultureInfo.CurrentCulture);
                     }
                     else
                     {
-                        // Если не число — игнорируем
+                        // Если не число, можно оставить пустую строку или оригинал
+                        // Здесь оставим оригинал без изменений
                     }
-                }
 
-                // Если нет значений — можно либо пропустить, либо вернуть пустой объект с ключом
-                // Здесь вернём пустой объект с ключом и без значений
-                for (int i = 0; i < filteredValues.Count; i++)
-                {
-                    sb.Append($"\"{label}\": \"{EscapeJson(filteredValues[i])}\"");
-                    if (i < filteredValues.Count - 1)
+                    sb.Append($"\"{label}\": \"{EscapeJson(cellStr)}\"");
+                    if (i < filteredCols.Count - 1)
                         sb.Append(", ");
                 }
                 sb.Append("}");
-                if (colIndex < filteredCols.Count - 1)
+                if (row < table.Rows.Count - 1)
                     sb.Append(",\n");
                 else
                     sb.Append("\n");
             }
 
             sb.Append("    ]\n  ]\n}");
-
             return sb.ToString();
         }
 
