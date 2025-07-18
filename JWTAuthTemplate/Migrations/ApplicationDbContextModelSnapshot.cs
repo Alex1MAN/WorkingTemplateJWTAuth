@@ -277,6 +277,30 @@ namespace JWTAuthTemplate.Migrations
                     b.ToTable("UserReferencesInMinio");
                 });
 
+            modelBuilder.Entity("JWTAuthTemplate.Models.Identity.UserSessionStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ActualAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("StatusParams")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserSessionStatuses");
+                });
+
             modelBuilder.Entity("JWTAuthTemplate.Models.Identity.ApplicationRoleClaim", b =>
                 {
                     b.HasOne("JWTAuthTemplate.Models.Identity.ApplicationRole", null)

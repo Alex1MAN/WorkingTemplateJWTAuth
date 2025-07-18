@@ -4,6 +4,7 @@ using JWTAuthTemplate.Extensions;
 using JWTAuthTemplate.Models.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace JWTAuthTemplate.Controllers
 {
@@ -100,5 +101,34 @@ namespace JWTAuthTemplate.Controllers
             return Ok($"Role {role.Name} was removed from {user.UserName}");
         }
 
+        [HttpPost("{userId}/SaveCurrentUserStatus")]
+        public async Task<IActionResult> SaveCurrentUserStatus(string userId, [FromBody] Dictionary<string, object> statusParams)
+        {
+            var record = new UserSessionStatus
+            {
+                UserId = userId,
+                ActualAt = DateTime.UtcNow,
+                StatusParamsDict = statusParams
+            };
+
+            _context.UserSessionStatuses.Add(record);
+            await _context.SaveChangesAsync();
+
+            return Ok($"Current status successfully saved");
+        }
+
+        [HttpGet("{userId}/GetLatestUserStatus")]
+        public async Task<IActionResult> GetLatestUserStatus(string userId)
+        {
+            var latest = await _context.UserSessionStatuses
+                .Where(r => r.UserId == userId)
+                .OrderByDescending(r => r.ActualAt)
+                .FirstOrDefaultAsync();
+
+            if (latest == null)
+                return NotFound();
+
+            return Ok(latest);
+        }
     }
 }

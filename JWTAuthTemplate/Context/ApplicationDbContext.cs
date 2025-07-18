@@ -10,6 +10,7 @@ namespace JWTAuthTemplate.Context
 
         public DbSet<UserProfileMinio> UserProfilesMinio { get; set; }
         public DbSet<UserReferencesInMinio> UserReferencesInMinio { get; set; }
+        public DbSet<UserSessionStatus> UserSessionStatuses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

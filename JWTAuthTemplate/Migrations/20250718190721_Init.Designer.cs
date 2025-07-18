@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace JWTAuthTemplate.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250627163030_Init")]
+    [Migration("20250718190721_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -278,6 +278,30 @@ namespace JWTAuthTemplate.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("UserReferencesInMinio");
+                });
+
+            modelBuilder.Entity("JWTAuthTemplate.Models.Identity.UserSessionStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ActualAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("StatusParams")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserSessionStatuses");
                 });
 
             modelBuilder.Entity("JWTAuthTemplate.Models.Identity.ApplicationRoleClaim", b =>

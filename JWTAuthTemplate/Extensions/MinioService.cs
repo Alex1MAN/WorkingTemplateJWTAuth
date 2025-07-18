@@ -1,6 +1,5 @@
 ﻿using ExcelDataReader;
 using JWTAuthTemplate.DTO.Identity;
-using JWTAuthTemplate.Migrations;
 using Microsoft.Extensions.Options;
 using Minio;
 using Minio.DataModel;

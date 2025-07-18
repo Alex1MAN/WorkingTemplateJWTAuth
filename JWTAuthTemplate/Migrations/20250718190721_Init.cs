@@ -85,6 +85,21 @@ namespace JWTAuthTemplate.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UserSessionStatuses",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    ActualAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    StatusParams = table.Column<string>(type: "jsonb", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserSessionStatuses", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {
@@ -251,6 +266,9 @@ namespace JWTAuthTemplate.Migrations
 
             migrationBuilder.DropTable(
                 name: "UserReferencesInMinio");
+
+            migrationBuilder.DropTable(
+                name: "UserSessionStatuses");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
