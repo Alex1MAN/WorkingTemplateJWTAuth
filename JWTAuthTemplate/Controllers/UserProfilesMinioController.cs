@@ -11,6 +11,7 @@ namespace JWTAuthTemplate.Controllers
     //[Authorize] // Optional: Requires authentication
     public class UserProfilesMinioController : ControllerBase
     {
+        /*
         private readonly ApplicationDbContext _context;
 
         public UserProfilesMinioController(ApplicationDbContext context)
@@ -99,6 +100,7 @@ namespace JWTAuthTemplate.Controllers
         {
             return _context.UserProfilesMinio.Any(e => e.Id == id);
         }
+        */
     }
 
 }

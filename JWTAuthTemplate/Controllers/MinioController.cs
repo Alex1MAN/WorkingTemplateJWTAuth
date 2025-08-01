@@ -81,7 +81,29 @@ namespace JWTAuthTemplate.Controllers
                     }
                 }
             }
-            return Ok($"File {fileName} uploaded to bucket {bucketName}.");
+            //return Ok($"File {fileName} uploaded to bucket {bucketName}.");
+
+            // Ниже добавляем ссылку MinIO в PostgreSQL
+            var streamUrl = await _minioService.GetFileAsync(bucketName, fileName);
+            streamUrl.Position = 0;
+            string fileUrl = "def value";
+            using (StreamReader reader = new StreamReader(streamUrl))
+            {
+                fileUrl = await reader.ReadToEndAsync();
+            }
+
+            var reference = new UserReferencesInMinio
+            {
+                UserId = bucketName,
+                FileName = fileName,
+                FileExtension = Path.GetExtension(fileName).Replace(".", ""),
+                FileReferenceMinio = fileUrl
+            };
+
+            _context.UserReferencesInMinio.Add(reference);
+            await _context.SaveChangesAsync();
+
+            return Ok($"File {fileName} uploaded to bucket {bucketName} and reference updated in Postgre.");
         }
         [HttpPost("upload")]
         public async Task<IActionResult> Upload(IFormFile file)
