@@ -102,6 +102,7 @@ namespace JWTAuthTemplate
 
             builder.Services.AddHttpContextAccessor();
 
+            builder.Services.AddScoped<TestMatrixService>(); // 08.08.2025
 
             if (builder.Environment.IsDevelopment())
             {
