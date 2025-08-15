@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace JWTAuthTemplate.Controllers
 {
     [ApiController]
-    [Route("TestMatrix")]
+    [Route("[controller]")]
     public class TestMatrixController : ControllerBase
     {
         private readonly TestMatrixService _matrixService;
@@ -15,7 +15,7 @@ namespace JWTAuthTemplate.Controllers
             _matrixService = matrixService;
         }
 
-        [HttpPost("Transpose")]
+        [HttpPost("TransposeMatrix")]
         public IActionResult TransposeMatrix([FromBody] TestMatrixDTO matrixDTO)
         {
             var result = _matrixService.Transpose(matrixDTO.Data);

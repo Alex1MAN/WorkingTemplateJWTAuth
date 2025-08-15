@@ -3,21 +3,12 @@ using JWTAuthTemplate.Extensions;
 using JWTAuthTemplate.Models.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Minio;
-
 using System.Data;
-using ExcelDataReader;
-using Newtonsoft.Json;
-
-using Minio.DataModel.Args;
-using System.IO;
-using System.Security.AccessControl;
-using System.Threading.Tasks;
 
 namespace JWTAuthTemplate.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     public class MinioController : ControllerBase
     {
         private readonly MinioService _minioService;
@@ -29,15 +20,15 @@ namespace JWTAuthTemplate.Controllers
             _context = context;
         }
 
-        [HttpPost("create-bucket")]
+        [HttpPost("CreateBucket")]
         public async Task<IActionResult> CreateBucket(string bucketName)
         {
             await _minioService.CreateBucketAsync(bucketName);
             return Ok($"Bucket {bucketName} created.");
         }
 
-        [HttpPost("upload-file")]
-        public async Task<IActionResult> UploadFile(
+        [HttpPost("UploadFileUpdateReference")]
+        public async Task<IActionResult> UploadFileUpdateReference(
             [FromForm] string bucketName,
             [FromForm] string fileName,
             [FromForm] IFormFile fileData)
@@ -105,8 +96,8 @@ namespace JWTAuthTemplate.Controllers
 
             return Ok($"File {fileName} uploaded to bucket {bucketName} and reference updated in Postgre.");
         }
-        [HttpPost("upload")]
-        public async Task<IActionResult> Upload(IFormFile file)
+        [HttpPost("TestUploadFile")]
+        public async Task<IActionResult> TestUploadFile(IFormFile file)
         {
             if (file == null || file.Length == 0)
             {
@@ -134,8 +125,8 @@ namespace JWTAuthTemplate.Controllers
         }
 
         // Тестовый метод ниже
-        [HttpPost("test-upload-file-direct-reference")]
-        public async Task<IActionResult> TestUploadFile(string bucketName, string filePath)
+        [HttpPost("TestUploadFileDirectReference")]
+        public async Task<IActionResult> TestUploadFileDirectReference(string bucketName, string filePath)
         {
             if (!System.IO.File.Exists(filePath))
             {
@@ -146,7 +137,7 @@ namespace JWTAuthTemplate.Controllers
             return Ok($"File {Path.GetFileName(filePath)} uploaded to bucket {bucketName}.");
         }
 
-        [HttpPost]
+        [HttpPost("AddReferenceInPostgre")]
         public async Task<IActionResult> AddReferenceInPostgre(UserReferencesInMinio userReferencesInMinio)
         {
             _context.UserReferencesInMinio.Add(userReferencesInMinio);
@@ -155,7 +146,7 @@ namespace JWTAuthTemplate.Controllers
             return CreatedAtAction("AddReferenceInPostgre", new { id = userReferencesInMinio.Id }, userReferencesInMinio);
         }
 
-        [HttpGet("files/{userId}")]
+        [HttpGet("GetFileReferencesByUserId")]
         public async Task<IActionResult> GetFileReferencesByUserId(string userId)
         {
             var fileReferences = await _context.UserReferencesInMinio
@@ -171,15 +162,14 @@ namespace JWTAuthTemplate.Controllers
             return Ok(fileReferences);
         }
 
-        /*[HttpGet("get-file")]
+        [HttpGet("GetFile")]
         public async Task<IActionResult> GetFile(string bucketName, string objectName)
         {
             var fileUrl = await _minioService.GetFileAsync(bucketName, objectName);
             return Ok(new { Url = fileUrl });
-        }*/
+        }
 
-
-        [HttpGet("{bucketName}/{fileName}")]
+        [HttpGet("GetFileContent")]
         public async Task<IActionResult> GetFileContent(string bucketName, string fileName)
         {
             try
@@ -193,7 +183,7 @@ namespace JWTAuthTemplate.Controllers
             }
         }
 
-        [HttpGet("get-all-table")]
+        [HttpGet("GetTableFromExcel")]
         public async Task<IActionResult> GetTableFromExcel(string bucketName, string fileName)
         {
             try
@@ -207,7 +197,7 @@ namespace JWTAuthTemplate.Controllers
             }
         }
 
-        [HttpGet("get-table-with-limits")]
+        [HttpGet("GetTableFromExcelWithLimits")]
         public async Task<IActionResult> GetTableFromExcelWithLimits(string bucketName, string fileName, double inputX1, double inputX2, double inputY1, double inputY2)
         {
             try

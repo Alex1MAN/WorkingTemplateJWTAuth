@@ -2,6 +2,6 @@
 {
     public class TestMatrixDTO
     {
-        public double[][] Data { get; set; }
+        public required double[][] Data { get; set; }
     }
 }

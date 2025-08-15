@@ -2,14 +2,9 @@
 using System.Text;
 using JWTAuthTemplate.Context;
 using JWTAuthTemplate.Models.Identity;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authentication.Cookies; //03.01.2025
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using JWTAuthTemplate.DTO.Identity;
@@ -24,7 +19,6 @@ namespace JWTAuthTemplate
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll",
@@ -53,7 +47,6 @@ namespace JWTAuthTemplate
             {
                 options.UseNpgsql(connectionString);
             });
-
             using (var context = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
                        .UseNpgsql(connectionString).Options))
             {
@@ -70,23 +63,17 @@ namespace JWTAuthTemplate
                 {
                     opts.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                     opts.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                    //opts.DefaultScheme = JwtBearerDefaults.AuthenticationScheme; //03.01.2025
                 })
                 //TODO: CHANGE THESE VALUES!!!
                 //These settings are super insecure. DO NOT USE THESE IN PRODUCTION.
                 .AddJwtBearer(opts =>
                 {
-                    //opts.SaveToken = true; //03.01.2025
-                    //opts.RequireHttpsMetadata = false; //03.01.2025
                     opts.TokenValidationParameters = new TokenValidationParameters()
                     {
-                        //ValidateIssuer = false, //03.01.2025
-                        //ValidateAudience = false, //03.01.2025
-                        //ValidateLifetime = false, //03.01.2025
                         ValidateIssuer = true,
                         ValidateAudience = true,
                         ValidateLifetime = true,
-                        ValidateIssuerSigningKey = true, //03.01.2025
+                        ValidateIssuerSigningKey = true,
                         ValidAudience = builder.Configuration["JWT:ValidAudience"],
                         ValidIssuer = builder.Configuration["JWT:ValidIssuer"],
                         IssuerSigningKey =
@@ -95,14 +82,14 @@ namespace JWTAuthTemplate
                 })
                 .AddCookie(opts =>
                 {
-                    opts.Cookie.HttpOnly = true; // Set HttpOnly to true
-                    opts.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Use secure cookies
+                    opts.Cookie.HttpOnly = true;
+                    opts.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                     opts.LoginPath = "/account/login"; // Define your login path
                 });
 
             builder.Services.AddHttpContextAccessor();
 
-            builder.Services.AddScoped<TestMatrixService>(); // 08.08.2025
+            builder.Services.AddScoped<TestMatrixService>();
 
             if (builder.Environment.IsDevelopment())
             {
@@ -139,12 +126,9 @@ namespace JWTAuthTemplate
                 });
             }
 
-            
-
             var app = builder.Build();
 
             app.UseCors("AllowAll");
-
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -153,12 +137,9 @@ namespace JWTAuthTemplate
             }
 
             //app.UseHttpsRedirection();
-
             app.UseAuthentication();
             app.UseAuthorization();
-
             app.MapControllers();
-
             app.Run();
         }
     }

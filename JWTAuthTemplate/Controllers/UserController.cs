@@ -1,6 +1,5 @@
 ﻿using JWTAuthTemplate.Context;
 using JWTAuthTemplate.DTO.Identity;
-using JWTAuthTemplate.Extensions;
 using JWTAuthTemplate.Models.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,12 +18,10 @@ namespace JWTAuthTemplate.Controllers
             _context = context;
         }
 
-        [HttpGet("{username}")]
+        [HttpGet("Get")]
         public async Task<ActionResult<UserDTO>> Get(string username)
         {
-            var user = await _context.Users.Where(u => u.UserName == username)
-                
-                .Select(x => new UserDTO()
+            var user = await _context.Users.Where(u => u.UserName == username).Select(x => new UserDTO()
             {
                 Id = x.Id,
                 Username = x.UserName,
@@ -38,16 +35,14 @@ namespace JWTAuthTemplate.Controllers
                     }
                 })),
             }).FirstOrDefaultAsync();
-            
             if (user == null)
             {
                 return NotFound("User was not found.");
             }
-
             return Ok(user);
         }
 
-        [HttpPost("{username}/Roles")]
+        [HttpPost("AddRole")]
         public async Task<ActionResult> AddRole(string username, [FromBody] RoleDTO role)
         {
             var user = await _context.Users.Where(u => u.UserName == username).FirstOrDefaultAsync();
@@ -55,26 +50,22 @@ namespace JWTAuthTemplate.Controllers
             {
                 return NotFound("The user was not found.");
             }
-
             var roleExists = await _context.Roles.Where(r => r.Name == role.Name).FirstOrDefaultAsync();
             if (roleExists == null)
             {
                 return NotFound("The role was not found.");
             }
-
             var userRole = new ApplicationUserRole()
             {
                 UserId = user.Id,
                 RoleId = roleExists.Id,
             };
-
             await _context.UserRoles.AddAsync(userRole);
             await _context.SaveChangesAsync();
-
             return Ok($"Role {role.Name} was added to {user.UserName}");
         }
 
-        [HttpDelete("{username}/Roles")]
+        [HttpDelete("RemoveRole")]
         public async Task<ActionResult> RemoveRole(string username, [FromBody] RoleDTO role)
         {
             var user = await _context.Users.Where(u => u.UserName == username).FirstOrDefaultAsync();
@@ -82,27 +73,23 @@ namespace JWTAuthTemplate.Controllers
             {
                 return NotFound("User not found");
             }
-
             var roleExists = await _context.Roles.Where(r => r.Name == role.Name).FirstOrDefaultAsync();
             if (roleExists == null)
             {
                 return NotFound("Role not found");
             }
-
             var userRole = await _context.UserRoles.Where(ur => ur.UserId == user.Id && ur.RoleId == roleExists.Id).FirstOrDefaultAsync();
             if (userRole == null)
             {
                 return NotFound("The specified user is not in the specified role");
             }
-
             _context.UserRoles.Remove(userRole);
             await _context.SaveChangesAsync();
-
             return Ok($"Role {role.Name} was removed from {user.UserName}");
         }
 
-        [HttpPost("{userId}/SaveCurrentUserStatus")]
-        public async Task<IActionResult> SaveCurrentUserStatus(string userId, [FromBody] Dictionary<string, object> statusParams)
+        [HttpPost("SaveStatus")]
+        public async Task<IActionResult> SaveStatus(string userId, [FromBody] Dictionary<string, object> statusParams)
         {
             var record = new UserSessionStatus
             {
@@ -110,24 +97,20 @@ namespace JWTAuthTemplate.Controllers
                 ActualAt = DateTime.UtcNow,
                 StatusParamsDict = statusParams
             };
-
             _context.UserSessionStatuses.Add(record);
             await _context.SaveChangesAsync();
-
             return Ok($"Current status successfully saved");
         }
 
-        [HttpGet("{userId}/GetLatestUserStatus")]
-        public async Task<IActionResult> GetLatestUserStatus(string userId)
+        [HttpGet("GetLatestStatus")]
+        public async Task<IActionResult> GetLatestStatus(string userId)
         {
             var latest = await _context.UserSessionStatuses
                 .Where(r => r.UserId == userId)
                 .OrderByDescending(r => r.ActualAt)
                 .FirstOrDefaultAsync();
-
             if (latest == null)
                 return NotFound();
-
             return Ok(latest);
         }
     }

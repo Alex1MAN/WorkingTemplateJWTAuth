@@ -1,6 +1,5 @@
 ﻿using JWTAuthTemplate.Models.Identity;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 namespace JWTAuthTemplate.Context
 {
@@ -53,12 +52,12 @@ namespace JWTAuthTemplate.Context
             }
 
             ApplicationRole adminRole = new ApplicationRole()
-           {
+            {
                ConcurrencyStamp = Guid.NewGuid().ToString(),
                Id = Guid.NewGuid().ToString(),
                Name = "Admin",
                NormalizedName = "ADMIN"
-           };
+            };
 
             var adminRoleExists = context.Roles.Any(r => r.NormalizedName == adminRole.NormalizedName);
             if (!adminRoleExists)
@@ -78,14 +77,7 @@ namespace JWTAuthTemplate.Context
                 }
             }
 
-
-
-
-
-
             context.SaveChanges();
-
-                
         }
     }
 }
