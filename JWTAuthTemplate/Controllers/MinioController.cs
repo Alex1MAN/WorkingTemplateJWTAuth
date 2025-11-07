@@ -183,6 +183,7 @@ namespace JWTAuthTemplate.Controllers
             }
         }
 
+        // Работа с эксель-файлом
         [HttpGet("GetTableFromExcel")]
         public async Task<IActionResult> GetTableFromExcel(string bucketName, string fileName)
         {
@@ -197,12 +198,29 @@ namespace JWTAuthTemplate.Controllers
             }
         }
 
+        // Работа с эксель-файлом
         [HttpGet("GetTableFromExcelWithLimits")]
         public async Task<IActionResult> GetTableFromExcelWithLimits(string bucketName, string fileName, double inputX1, double inputX2, double inputY1, double inputY2)
         {
             try
             {
                 var resultTable = await _minioService.GetExcelFileContentAsJsonWithLimits(bucketName, fileName, inputX1, inputX2, inputY1, inputY2);
+                return Ok(resultTable);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+
+        // Работа с SPC-файлом
+        [HttpGet("GetTableFromSPC")]
+        public async Task<IActionResult> GetTableFromSPC(string bucketName, string fileName)
+        {
+            try
+            {
+                var resultTable = await _minioService.GetSPCFileContentAsJson(bucketName, fileName);
                 return Ok(resultTable);
             }
             catch (Exception ex)

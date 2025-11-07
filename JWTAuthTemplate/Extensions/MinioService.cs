@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using System.Data;
 using System.Text;
 using System.Threading.Tasks;
+using Elchwinkel.Spc;
 
 namespace JWTAuthTemplate.Extensions
 {
@@ -60,6 +61,7 @@ namespace JWTAuthTemplate.Extensions
             return memoryStream;
         }
 
+        // Работа с эксель-файлом
         public async Task<string> GetExcelFileContentAsJson(string bucketName, string objectName)
         {
             var memoryStream = new MemoryStream();
@@ -118,6 +120,7 @@ namespace JWTAuthTemplate.Extensions
             return sb.ToString();
         }
 
+        // Работа с эксель-файлом
         public async Task<string> GetExcelFileContentAsJsonWithLimits(string bucketName, string objectName, double inputX1, double inputX2, double inputY1, double inputY2)
         {
             var memoryStream = new MemoryStream();
@@ -221,6 +224,60 @@ namespace JWTAuthTemplate.Extensions
             sb.Append("    ]\n  ]\n}");
             return sb.ToString();
         }
+
+
+        // Работа с SPC-файлом
+        public async Task<string> GetSPCFileContentAsJson(string bucketName, string objectName)
+        {
+            var memoryStream = new MemoryStream();
+            var getObjectArgs = new GetObjectArgs()
+                .WithBucket(bucketName)
+                .WithObject(objectName)
+                .WithCallbackStream(stream =>
+                {
+                    stream.CopyTo(memoryStream);
+                });
+            await _minioClient.GetObjectAsync(getObjectArgs);
+            memoryStream.Position = 0;
+
+            string tempFilePath = Path.GetTempFileName();
+            using (var fileStream = File.Create(tempFilePath))
+            {
+                memoryStream.Seek(0, SeekOrigin.Begin);
+                memoryStream.CopyTo(fileStream);
+            }
+            var spc = SpcReader.Read(tempFilePath);
+
+            var sb = new StringBuilder();
+            var labels = new List<string> { spc.XUnit.Name, spc.YUnit.Name };
+            var xValues = spc.Spectra[0].X;
+            var yValues = spc.Spectra[0].Y;
+            sb.Append("{\n  \"labels\": [");
+            for (int i = 0; i < labels.Count; i++)
+            {
+                sb.Append($"\"{EscapeJson(labels[i])}\"");
+                if (i < labels.Count - 1)
+                    sb.Append(", ");
+            }
+            sb.Append("],\n  \"values\": [\n    [\n");
+            for (int i = 0; i < xValues.Length; i++)
+            {
+                sb.Append("      {");
+                sb.Append($"\"{EscapeJson(labels[0])}\": \"{xValues[i]}\"");
+                sb.Append(", ");
+                sb.Append($"\"{EscapeJson(labels[1])}\": \"{yValues[i]}\"");
+                sb.Append("}");
+                if (i < xValues.Length - 1)
+                    sb.Append(",\n");
+                else
+                    sb.Append("\n");
+            }
+            sb.Append("    ]\n  ]\n}");
+            File.Delete(tempFilePath);
+
+            return sb.ToString();
+        }
+
 
         // Метод для экранирования строк в JSON (кавычки, обратные слэши и т.п.)
         private string EscapeJson(string s)
