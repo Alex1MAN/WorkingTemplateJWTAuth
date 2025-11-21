@@ -96,6 +96,83 @@ namespace JWTAuthTemplate.Controllers
 
             return Ok($"File {fileName} uploaded to bucket {bucketName} and reference updated in Postgre.");
         }
+
+        [HttpPost("UploadSeveralFilesAndUpdateReferencesInPostgre")]
+        public async Task<IActionResult> UploadSeveralFilesAndUpdateReferencesInPostgre(
+            [FromForm] string bucketName,
+            [FromForm] List<IFormFile> filesData)
+        {
+            if (filesData == null || !filesData.Any())
+            {
+                return BadRequest("No files provided for upload.");
+            }
+            if (string.IsNullOrEmpty(bucketName))
+            {
+                return BadRequest("Bucket name cannot be null or empty.");
+            }
+
+            foreach (var fileData in filesData)
+            {
+                if (fileData == null || fileData.Length == 0)
+                {
+                    continue; // Skip empty files
+                }
+
+                var fileName = fileData.FileName;
+                // Create temp file
+                var tempFilePath = Path.GetTempFileName();
+                try
+                {
+                    using (var stream = new FileStream(tempFilePath, FileMode.Create))
+                    {
+                        await fileData.CopyToAsync(stream);
+                    }
+                    // Upload file to MinIO
+                    await _minioService.UploadFileAsync(bucketName, fileName, tempFilePath);
+
+                    // Get the file reference URL from MinIO
+                    var streamUrl = await _minioService.GetFileAsync(bucketName, fileName);
+                    streamUrl.Position = 0;
+                    string fileUrl;
+                    using (StreamReader reader = new StreamReader(streamUrl))
+                    {
+                        fileUrl = await reader.ReadToEndAsync();
+                    }
+
+                    // Store reference in DB
+                    var reference = new UserReferencesInMinio
+                    {
+                        UserId = bucketName,
+                        FileName = fileName,
+                        FileExtension = Path.GetExtension(fileName).Replace(".", ""),
+                        FileReferenceMinio = fileUrl
+                    };
+                    _context.UserReferencesInMinio.Add(reference);
+                }
+                finally
+                {
+                    if (System.IO.File.Exists(tempFilePath))
+                    {
+                        try
+                        {
+                            System.IO.File.Delete(tempFilePath);
+                        }
+                        catch (Exception deleteEx)
+                        {
+                            Console.Error.WriteLine($"Error deleting temp file: {deleteEx.Message}");
+                        }
+                    }
+                }
+            }
+
+            // Save all references at once
+            await _context.SaveChangesAsync();
+
+            return Ok($"Uploaded {filesData.Count} files to bucket {bucketName} and updated references in database.");
+        }
+
+
+
         [HttpPost("TestUploadFile")]
         public async Task<IActionResult> TestUploadFile(IFormFile file)
         {
@@ -228,5 +305,28 @@ namespace JWTAuthTemplate.Controllers
                 return NotFound(new { message = ex.Message });
             }
         }
+
+        // Работа с несколькими SPC-файлами
+        [HttpGet("GetTablesFromSeveralSPC")]
+        public async Task<IActionResult> GetTablesFromSeveralSPC(string bucketName, [FromQuery] string[] fileNames)
+        {
+            try
+            {
+                var results = new List<string>();
+                foreach (var fileName in fileNames)
+                {
+                    var resultTable = await _minioService.GetSPCFileContentAsJson(bucketName, fileName);
+                    results.Add(resultTable);
+                }
+                // Combine results into a JSON array
+                string combinedJson = "[" + string.Join(",", results) + "]";
+                return Ok(combinedJson);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
     }
 }
