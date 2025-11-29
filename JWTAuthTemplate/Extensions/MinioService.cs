@@ -240,13 +240,8 @@ namespace JWTAuthTemplate.Extensions
             await _minioClient.GetObjectAsync(getObjectArgs);
             memoryStream.Position = 0;
 
-            string tempFilePath = Path.GetTempFileName();
-            using (var fileStream = File.Create(tempFilePath))
-            {
-                memoryStream.Seek(0, SeekOrigin.Begin);
-                memoryStream.CopyTo(fileStream);
-            }
-            var spc = SpcReader.Read(tempFilePath);
+            byte[] spcBytes = memoryStream.ToArray();
+            var spc = SpcReader.Read(spcBytes);
 
             var sb = new StringBuilder();
             var labels = new List<string> { spc.XUnit.Name, spc.YUnit.Name };
@@ -273,7 +268,6 @@ namespace JWTAuthTemplate.Extensions
                     sb.Append("\n");
             }
             sb.Append("    ]\n  ]\n}");
-            File.Delete(tempFilePath);
 
             return sb.ToString();
         }
@@ -284,7 +278,10 @@ namespace JWTAuthTemplate.Extensions
         {
             if (string.IsNullOrEmpty(s))
                 return "";
-            return s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r");
+            return s.Replace("\\", "\\\\")
+                   .Replace("\"", "\\\"")
+                   .Replace("\n", "\\n")
+                   .Replace("\r", "\\r");
         }
     }
 }

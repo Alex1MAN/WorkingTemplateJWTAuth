@@ -4,6 +4,8 @@ using JWTAuthTemplate.Models.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
+using System.Diagnostics;
+using System.Text;
 
 namespace JWTAuthTemplate.Controllers
 {
@@ -308,8 +310,20 @@ namespace JWTAuthTemplate.Controllers
 
         // Работа с несколькими SPC-файлами
         [HttpGet("GetTablesFromSeveralSPC")]
-        public async Task<IActionResult> GetTablesFromSeveralSPC(string bucketName, [FromQuery] string[] fileNames)
+        public async Task<IActionResult> GetTablesFromSeveralSPC(string bucketName, [FromQuery] string[] fileNames) // Вернуть для прода
+        //public async Task<IActionResult> GetTablesFromSeveralSPC(string bucketName, [FromQuery] int fileCount = 5) // N файлов для теста
         {
+            /*
+            // Для теста загрузки файлов
+            var stopwatch = Stopwatch.StartNew();
+            // Генерация последовательных имен файлов
+            var fileNames = new List<string>();
+            for (int i = 3; i <= fileCount + 2; i++) // 3.spc → N+2.spc
+            {
+                fileNames.Add($"allAttachments_6047/SERS4_RamanShift_{i}.spc");
+            }
+            */
+
             try
             {
                 var results = new List<string>();
@@ -318,12 +332,32 @@ namespace JWTAuthTemplate.Controllers
                     var resultTable = await _minioService.GetSPCFileContentAsJson(bucketName, fileName);
                     results.Add(resultTable);
                 }
+
+                /*
+                // Для теста загрузки файлов
+                stopwatch.Stop();
+                // Форматирование времени: минуты:секунды (например: 02:45)
+                string elapsedFormatted = stopwatch.Elapsed.ToString("mm\\:ss");
+                // Память в мегабайтах (1 МБ = 1024 * 1024 байт)
+                double memoryMb = GC.GetTotalMemory(false) / (1024.0 * 1024.0);
+                // Логирование для построения медианной кривой (5 измерений)
+                string logLine = $"{DateTime.Now:dd.MM.yyyy HH:mm:ss} | {fileNames.Count} files | {elapsedFormatted} | {memoryMb:F2}";
+                string logFilePath = Path.Combine(Directory.GetCurrentDirectory(), "SPC_Performance_Log.txt");
+                // Асинхронная запись в текстовый файл
+                await System.IO.File.AppendAllTextAsync(logFilePath, logLine + Environment.NewLine, Encoding.UTF8);
+                */
+
                 // Combine results into a JSON array
                 string combinedJson = "[" + string.Join(",", results) + "]";
+                GC.Collect();
                 return Ok(combinedJson);
+
+                // Для теста загрузки файлов - не выводим json, т.к. Swagger не вывозит
+                //return Ok("Successful result");
             }
             catch (Exception ex)
             {
+                GC.Collect();
                 return NotFound(new { message = ex.Message });
             }
         }
