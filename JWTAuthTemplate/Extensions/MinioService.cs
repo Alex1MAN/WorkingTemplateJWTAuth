@@ -46,6 +46,17 @@ namespace JWTAuthTemplate.Extensions
                 .WithContentType("application/octet-stream"));
         }
 
+        // 12.12.2025 - для убирания работы со временным файлом
+        public async Task UploadFileAsync2(string bucketName, string objectName, Stream fileStream, long fileSize)
+        {
+            await _minioClient.PutObjectAsync(new PutObjectArgs()
+                .WithBucket(bucketName)
+                .WithObject(objectName)
+                .WithStreamData(fileStream)
+                .WithObjectSize(fileSize)
+                .WithContentType("application/octet-stream"));
+        }
+
         public async Task<Stream> GetFileAsync(string bucketName, string objectName)
         {
             var memoryStream = new MemoryStream();

@@ -99,6 +99,7 @@ namespace JWTAuthTemplate.Controllers
             return Ok($"File {fileName} uploaded to bucket {bucketName} and reference updated in Postgre.");
         }
 
+        // Основной метод загрузки файлов, метод с 1 файлом (UploadFileUpdateReference) не нужен
         [HttpPost("UploadSeveralFilesAndUpdateReferencesInPostgre")]
         public async Task<IActionResult> UploadSeveralFilesAndUpdateReferencesInPostgre(
             [FromForm] string bucketName,
@@ -171,6 +172,74 @@ namespace JWTAuthTemplate.Controllers
             await _context.SaveChangesAsync();
 
             return Ok($"Uploaded {filesData.Count} files to bucket {bucketName} and updated references in database.");
+        }
+
+
+        // Новая версия основного метода без временных файлов
+        public async Task<IActionResult> UploadSeveralFilesAndUpdateReferencesInPostgre2(
+            [FromForm] string bucketName,
+            [FromForm] List<IFormFile> filesData)
+        {
+            if (filesData == null || !filesData.Any())
+            {
+                return BadRequest("No files provided for upload.");
+            }
+            if (string.IsNullOrEmpty(bucketName))
+            {
+                return BadRequest("Bucket name cannot be null or empty.");
+            }
+
+            var references = new List<UserReferencesInMinio>();
+
+            foreach (var fileData in filesData)
+            {
+                if (fileData == null || fileData.Length == 0)
+                {
+                    continue; // Skip empty files
+                }
+
+                var fileName = fileData.FileName;
+                var fileExtension = Path.GetExtension(fileName).Replace(".", "");
+
+                try
+                {
+                    // Upload file to MinIO directly from memory stream
+                    using var memoryStream = fileData.OpenReadStream();
+                    await _minioService.UploadFileAsync2(bucketName, fileName, memoryStream, fileData.Length);
+
+                    // Get the file reference URL from MinIO
+                    var streamUrl = await _minioService.GetFileAsync(bucketName, fileName);
+                    streamUrl.Position = 0;
+                    string fileUrl;
+                    using (StreamReader reader = new StreamReader(streamUrl))
+                    {
+                        fileUrl = await reader.ReadToEndAsync();
+                    }
+
+                    // Prepare reference for batch insert
+                    var reference = new UserReferencesInMinio
+                    {
+                        UserId = bucketName,
+                        FileName = fileName,
+                        FileExtension = fileExtension,
+                        FileReferenceMinio = fileUrl
+                    };
+                    references.Add(reference);
+                }
+                catch (Exception ex)
+                {
+                    // Log error but continue with other files
+                    Console.Error.WriteLine($"Error processing file {fileName}: {ex.Message}");
+                }
+            }
+
+            if (references.Any())
+            {
+                _context.UserReferencesInMinio.AddRange(references);
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok($"Successfully processed {references.Count} files to bucket {bucketName}.");
         }
 
 
