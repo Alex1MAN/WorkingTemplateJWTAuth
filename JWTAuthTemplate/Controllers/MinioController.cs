@@ -139,7 +139,10 @@ namespace JWTAuthTemplate.Controllers
                     string fileUrl;
                     using (StreamReader reader = new StreamReader(streamUrl))
                     {
-                        fileUrl = await reader.ReadToEndAsync();
+                        //fileUrl = await reader.ReadToEndAsync(); // Проблема тут, т.к. "в fileUrl пишется весь поток данных, а не только поле ETAG которое нам нужно"
+
+                        // 13.12.2025 корректировка
+                        fileUrl = await _minioService.GetObjectETagAsync(bucketName, fileName);
                     }
 
                     // Store reference in DB
@@ -174,9 +177,9 @@ namespace JWTAuthTemplate.Controllers
             return Ok($"Uploaded {filesData.Count} files to bucket {bucketName} and updated references in database.");
         }
 
-
+        
         // Новая версия основного метода без временных файлов
-        public async Task<IActionResult> UploadSeveralFilesAndUpdateReferencesInPostgre2(
+        /*public async Task<IActionResult> UploadSeveralFilesAndUpdateReferencesInPostgre2(
             [FromForm] string bucketName,
             [FromForm] List<IFormFile> filesData)
         {
@@ -241,7 +244,7 @@ namespace JWTAuthTemplate.Controllers
 
             return Ok($"Successfully processed {references.Count} files to bucket {bucketName}.");
         }
-
+        */
 
 
         [HttpPost("TestUploadFile")]
@@ -377,7 +380,7 @@ namespace JWTAuthTemplate.Controllers
             }
         }
 
-        // Работа с несколькими SPC-файлами
+        // Работа с несколькими SPC-файлами - работу с одним файлом убрать
         [HttpGet("GetTablesFromSeveralSPC")]
         public async Task<IActionResult> GetTablesFromSeveralSPC(string bucketName, [FromQuery] string[] fileNames) // Вернуть для прода
         //public async Task<IActionResult> GetTablesFromSeveralSPC(string bucketName, [FromQuery] int fileCount = 5) // N файлов для теста

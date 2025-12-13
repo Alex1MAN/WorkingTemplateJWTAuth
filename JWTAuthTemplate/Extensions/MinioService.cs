@@ -294,5 +294,25 @@ namespace JWTAuthTemplate.Extensions
                    .Replace("\n", "\\n")
                    .Replace("\r", "\\r");
         }
+
+
+        // 13.12.2025 корректировка
+        public async Task<string> GetObjectETagAsync(string bucketName, string objectName)
+        {
+            try
+            {
+                var statArgs = new StatObjectArgs()
+                    .WithBucket(bucketName)
+                    .WithObject(objectName);
+
+                var objectStat = await _minioClient.StatObjectAsync(statArgs);
+                return objectStat.ETag;
+            }
+            catch (Exception ex)
+            {
+                // Обработка ошибок (объект не найден и т.д.)
+                throw new Exception($"Не удалось получить ETAG для {objectName}", ex);
+            }
+        }
     }
 }
