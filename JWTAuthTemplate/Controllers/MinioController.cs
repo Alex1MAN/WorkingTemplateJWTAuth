@@ -22,6 +22,7 @@ namespace JWTAuthTemplate.Controllers
             _context = context;
         }
 
+
         [HttpPost("CreateBucket")]
         public async Task<IActionResult> CreateBucket(string bucketName)
         {
@@ -29,79 +30,10 @@ namespace JWTAuthTemplate.Controllers
             return Ok($"Bucket {bucketName} created.");
         }
 
-        [HttpPost("UploadFileUpdateReference")]
-        public async Task<IActionResult> UploadFileUpdateReference(
-            [FromForm] string bucketName,
-            [FromForm] string fileName,
-            [FromForm] IFormFile fileData)
-        {
-            if (fileData == null || fileData.Length == 0)
-            {
-                return BadRequest("File data cannot be null or empty.");
-            }
-            if (string.IsNullOrEmpty(bucketName))
-            {
-                return BadRequest("Bucket name cannot be null or empty.");
-            }
-
-            if (string.IsNullOrEmpty(fileName))
-            {
-                return BadRequest("File name cannot be null or empty.");
-            }
-            // Создаем временный файл
-            var tempFilePath = Path.GetTempFileName();
-            try
-            {
-                using (var stream = new FileStream(tempFilePath, FileMode.Create))
-                {
-                    await fileData.CopyToAsync(stream);
-                }
-                // Вызываем метод загрузки по пути временного файла
-                await _minioService.UploadFileAsync(bucketName, fileName, tempFilePath);
-            }
-            finally
-            {
-                // Удаляем временный файл
-                if (System.IO.File.Exists(tempFilePath))
-                {
-                    try
-                    {
-                        System.IO.File.Delete(tempFilePath);
-                    }
-                    catch (Exception deleteEx)
-                    {
-                        Console.Error.WriteLine($"Ошибка удаления временного файла: {deleteEx.Message}");
-                    }
-                }
-            }
-            //return Ok($"File {fileName} uploaded to bucket {bucketName}.");
-
-            // Ниже добавляем ссылку MinIO в PostgreSQL
-            var streamUrl = await _minioService.GetFileAsync(bucketName, fileName);
-            streamUrl.Position = 0;
-            string fileUrl = "def value";
-            using (StreamReader reader = new StreamReader(streamUrl))
-            {
-                fileUrl = await reader.ReadToEndAsync();
-            }
-
-            var reference = new UserReferencesInMinio
-            {
-                UserId = bucketName,
-                FileName = fileName,
-                FileExtension = Path.GetExtension(fileName).Replace(".", ""),
-                FileReferenceMinio = fileUrl
-            };
-
-            _context.UserReferencesInMinio.Add(reference);
-            await _context.SaveChangesAsync();
-
-            return Ok($"File {fileName} uploaded to bucket {bucketName} and reference updated in Postgre.");
-        }
-
-        // Основной метод загрузки файлов, метод с 1 файлом (UploadFileUpdateReference) не нужен
-        [HttpPost("UploadSeveralFilesAndUpdateReferencesInPostgre")]
-        public async Task<IActionResult> UploadSeveralFilesAndUpdateReferencesInPostgre(
+        
+        // Основной метод загрузки файлов
+        [HttpPost("UploadFilesUpdateReferences")]
+        public async Task<IActionResult> UploadFilesUpdateReferences(
             [FromForm] string bucketName,
             [FromForm] List<IFormFile> filesData)
         {
@@ -177,12 +109,14 @@ namespace JWTAuthTemplate.Controllers
             return Ok($"Uploaded {filesData.Count} files to bucket {bucketName} and updated references in database.");
         }
 
-        
+
         // Новая версия основного метода без временных файлов
-        /*public async Task<IActionResult> UploadSeveralFilesAndUpdateReferencesInPostgre2(
+        [HttpPost("UploadFilesUpdateReferences_2")]
+        public async Task<IActionResult> UploadFilesUpdateReferences_2(
             [FromForm] string bucketName,
             [FromForm] List<IFormFile> filesData)
         {
+            // Вроде рабочее, но нужно проверить
             if (filesData == null || !filesData.Any())
             {
                 return BadRequest("No files provided for upload.");
@@ -216,7 +150,10 @@ namespace JWTAuthTemplate.Controllers
                     string fileUrl;
                     using (StreamReader reader = new StreamReader(streamUrl))
                     {
-                        fileUrl = await reader.ReadToEndAsync();
+                        //fileUrl = await reader.ReadToEndAsync(); // Проблема тут, т.к. "в fileUrl пишется весь поток данных, а не только поле ETAG которое нам нужно"
+
+                        // 13.12.2025 корректировка
+                        fileUrl = await _minioService.GetObjectETagAsync(bucketName, fileName);
                     }
 
                     // Prepare reference for batch insert
@@ -244,7 +181,7 @@ namespace JWTAuthTemplate.Controllers
 
             return Ok($"Successfully processed {references.Count} files to bucket {bucketName}.");
         }
-        */
+        
 
 
         [HttpPost("TestUploadFile")]
@@ -275,18 +212,6 @@ namespace JWTAuthTemplate.Controllers
             return Ok("File uploaded successfully.");
         }
 
-        // Тестовый метод ниже
-        [HttpPost("TestUploadFileDirectReference")]
-        public async Task<IActionResult> TestUploadFileDirectReference(string bucketName, string filePath)
-        {
-            if (!System.IO.File.Exists(filePath))
-            {
-                return NotFound($"File {Path.GetFileName(filePath)} not found.");
-            }
-            await _minioService.UploadFileAsync(bucketName, Path.GetFileName(filePath), filePath);
-            
-            return Ok($"File {Path.GetFileName(filePath)} uploaded to bucket {bucketName}.");
-        }
 
         [HttpPost("AddReferenceInPostgre")]
         public async Task<IActionResult> AddReferenceInPostgre(UserReferencesInMinio userReferencesInMinio)
@@ -296,6 +221,7 @@ namespace JWTAuthTemplate.Controllers
 
             return CreatedAtAction("AddReferenceInPostgre", new { id = userReferencesInMinio.Id }, userReferencesInMinio);
         }
+
 
         [HttpGet("GetFileReferencesByUserId")]
         public async Task<IActionResult> GetFileReferencesByUserId(string userId)
@@ -313,12 +239,14 @@ namespace JWTAuthTemplate.Controllers
             return Ok(fileReferences);
         }
 
-        [HttpGet("GetFile")]
-        public async Task<IActionResult> GetFile(string bucketName, string objectName)
+
+        [HttpGet("GetUrlFileFromMinio")]
+        public async Task<IActionResult> GetUrlFileFromMinio(string bucketName, string objectName)
         {
             var fileUrl = await _minioService.GetFileAsync(bucketName, objectName);
             return Ok(new { Url = fileUrl });
         }
+
 
         [HttpGet("GetFileContent")]
         public async Task<IActionResult> GetFileContent(string bucketName, string fileName)
@@ -334,9 +262,10 @@ namespace JWTAuthTemplate.Controllers
             }
         }
 
+
         // Работа с эксель-файлом
-        [HttpGet("GetTableFromExcel")]
-        public async Task<IActionResult> GetTableFromExcel(string bucketName, string fileName)
+        [HttpGet("GetAllTableFromExcel")]
+        public async Task<IActionResult> GetAllTableFromExcel(string bucketName, string fileName)
         {
             try
             {
@@ -348,6 +277,7 @@ namespace JWTAuthTemplate.Controllers
                 return NotFound(new { message = ex.Message });
             }
         }
+
 
         // Работа с эксель-файлом
         [HttpGet("GetTableFromExcelWithLimits")]
@@ -364,21 +294,6 @@ namespace JWTAuthTemplate.Controllers
             }
         }
 
-
-        // Работа с SPC-файлом
-        [HttpGet("GetTableFromSPC")]
-        public async Task<IActionResult> GetTableFromSPC(string bucketName, string fileName)
-        {
-            try
-            {
-                var resultTable = await _minioService.GetSPCFileContentAsJson(bucketName, fileName);
-                return Ok(resultTable);
-            }
-            catch (Exception ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-        }
 
         // Работа с несколькими SPC-файлами - работу с одним файлом убрать
         [HttpGet("GetTablesFromSeveralSPC")]
@@ -434,5 +349,7 @@ namespace JWTAuthTemplate.Controllers
             }
         }
 
+
+        // Новые методы добавлять ниже
     }
 }
