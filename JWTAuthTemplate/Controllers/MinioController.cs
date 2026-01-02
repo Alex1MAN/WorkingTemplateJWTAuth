@@ -1,5 +1,6 @@
 ﻿using JWTAuthTemplate.Context;
 using JWTAuthTemplate.Extensions;
+using JWTAuthTemplate.Migrations;
 using JWTAuthTemplate.Models.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -247,7 +248,8 @@ namespace JWTAuthTemplate.Controllers
             return Ok(new { Url = fileUrl });
         }
 
-
+        /*
+        // 02.01.2026 - мб устарело
         [HttpGet("GetFileContent")]
         public async Task<IActionResult> GetFileContent(string bucketName, string fileName)
         {
@@ -261,6 +263,7 @@ namespace JWTAuthTemplate.Controllers
                 return NotFound(new { message = ex.Message });
             }
         }
+        */
 
 
         // Работа с эксель-файлом
@@ -279,7 +282,7 @@ namespace JWTAuthTemplate.Controllers
         }
 
 
-        // Работа с эксель-файлом
+        // Работа с эксель-файлом с ограничениями
         [HttpGet("GetTableFromExcelWithLimits")]
         public async Task<IActionResult> GetTableFromExcelWithLimits(string bucketName, string fileName, double inputX1, double inputX2, double inputY1, double inputY2)
         {
@@ -350,6 +353,52 @@ namespace JWTAuthTemplate.Controllers
         }
 
 
-        // Новые методы добавлять ниже
+        // ======================= Новые методы добавлять ниже
+
+        [HttpGet("GetAllContentFromFiles")]
+        public async Task<IActionResult> GetAllContentFromFiles(string bucketName, [FromQuery] string[] fileNames, string type)
+        {
+            type = type.ToLower();
+            switch (type)
+            {
+                case var s when s.Contains(".xls"):
+                    try
+                    {
+                        // Работа только с ПЕРВЫМ эксель файлом (если требуется работа с несколькими файлами - доработать метод)
+                        var resultTable = await _minioService.GetExcelFileContentAsJson(bucketName, fileNames[0]);
+                        GC.Collect();
+                        return Ok(resultTable);
+                    }
+                    catch (Exception ex)
+                    {
+                        GC.Collect();
+                        return NotFound(new { message = ex.Message });
+                    }
+                
+                case var s when s.Contains(".spc"):
+                    try
+                    {
+                        var results = new List<string>();
+                        foreach (var fileName in fileNames)
+                        {
+                            var resultTable = await _minioService.GetSPCFileContentAsJson(bucketName, fileName);
+                            results.Add(resultTable);
+                        }
+                        // Combine results into a JSON array
+                        string combinedJson = "[" + string.Join(",", results) + "]";
+                        GC.Collect();
+                        return Ok(combinedJson);
+                    }
+                    catch (Exception ex)
+                    {
+                        GC.Collect();
+                        return NotFound(new { message = ex.Message });
+                    }
+                
+                default:
+                    GC.Collect();
+                    return BadRequest(new { type, error = "Неизвестное расширение" });
+            }
+        }
     }
 }
