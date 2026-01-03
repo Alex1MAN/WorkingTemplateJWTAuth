@@ -356,12 +356,12 @@ namespace JWTAuthTemplate.Controllers
         // ======================= Новые методы добавлять ниже
 
         [HttpGet("GetAllContentFromFiles")]
-        public async Task<IActionResult> GetAllContentFromFiles(string bucketName, [FromQuery] string[] fileNames, string type)
+        public async Task<IActionResult> GetAllContentFromFiles(string bucketName, [FromQuery] string[] fileNames, string allFilesExtension)
         {
-            type = type.ToLower();
-            switch (type)
+            allFilesExtension = allFilesExtension.ToLower();
+            switch (allFilesExtension)
             {
-                case var s when s.Contains(".xls"):
+                case var s when s.Contains("xls"):
                     try
                     {
                         // Работа только с ПЕРВЫМ эксель файлом (если требуется работа с несколькими файлами - доработать метод)
@@ -375,7 +375,7 @@ namespace JWTAuthTemplate.Controllers
                         return NotFound(new { message = ex.Message });
                     }
                 
-                case var s when s.Contains(".spc"):
+                case var s when s.Contains("spc"):
                     try
                     {
                         var results = new List<string>();
@@ -397,7 +397,7 @@ namespace JWTAuthTemplate.Controllers
                 
                 default:
                     GC.Collect();
-                    return BadRequest(new { type, error = "Неизвестное расширение" });
+                    return BadRequest(new { allFilesExtension, error = "Неизвестное расширение файлов" });
             }
         }
     }
