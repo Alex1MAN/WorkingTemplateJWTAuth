@@ -12,10 +12,10 @@ namespace JWTAuthTemplate.WebAPI.Controllers
                 await action();
                 return Ok();
             }
-            catch (EntityNotFoundException ex)
+            /*catch (EntityNotFoundException ex)
             {
                 return NotFound(ex.Message);
-            }
+            }*/
             catch (ValidationException ex)
             {
                 return BadRequest(ex.Message);

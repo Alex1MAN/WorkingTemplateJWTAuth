@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using JWTAuthTemplate.Application.Interfaces;
 
 namespace JWTAuthTemplate.WebAPI.Controllers
 {
@@ -20,7 +21,6 @@ namespace JWTAuthTemplate.WebAPI.Controllers
             return await ExecuteSafeAsync(async () =>
             {
                 await _sessionService.SaveUserSessionStatus(userid, statusParams);
-                return Ok("Session status saved");
             });
         }
 
@@ -29,8 +29,7 @@ namespace JWTAuthTemplate.WebAPI.Controllers
         {
             return await ExecuteSafeAsync(async () =>
             {
-                var status = await _sessionService.GetLatestUserSessionStatus(userid);
-                return Ok(status);
+                await _sessionService.GetLatestUserSessionStatus(userid);
             });
         }
     }

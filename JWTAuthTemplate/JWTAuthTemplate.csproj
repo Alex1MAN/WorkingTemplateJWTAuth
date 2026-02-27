@@ -34,8 +34,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Shared\Dtos\ResponseDtos\" />
-    <Folder Include="Shared\Dtos\RequestDtos\" />
+    <Folder Include="Shared\Dtos\" />
   </ItemGroup>
 
 </Project>

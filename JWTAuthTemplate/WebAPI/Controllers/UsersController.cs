@@ -20,8 +20,7 @@ namespace JWTAuthTemplate.WebAPI.Controllers
         {
             return await ExecuteSafeAsync(async () =>
             {
-                var user = await _userService.GetByUsername(username);
-                return Ok(user);
+                await _userService.GetByUsername(username);
             });
         }
     }

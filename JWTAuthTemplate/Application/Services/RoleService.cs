@@ -4,8 +4,10 @@ using JWTAuthTemplate.Models.Identity;
 
 namespace JWTAuthTemplate.Application.Services
 {
-    public class RoleService : IRoleService
+    //public class RoleService : IRoleService
+    public class RoleService
     {
+        /*
         private readonly IRepository<ApplicationRole> _roleRepository;
 
         public RoleService(IRepository<ApplicationRole> roleRepository)
@@ -22,5 +24,6 @@ namespace JWTAuthTemplate.Application.Services
         {
             // Получение списка ролей
         }
+        */
     }
 }

@@ -13,7 +13,7 @@ namespace JWTAuthTemplate.WebAPI.Controllers
         {
             _matrixService = matrixService;
         }
-
+        /*
         [HttpPost("multiply")]
         public IActionResult MultiplyMatrices([FromBody] MatrixMultiplicationDTO matrices)
         {
@@ -34,5 +34,6 @@ namespace JWTAuthTemplate.WebAPI.Controllers
             var determinant = _matrixService.CalculateDeterminant(matrix.Data);
             return Ok(determinant);
         }
+        */
     }
 }

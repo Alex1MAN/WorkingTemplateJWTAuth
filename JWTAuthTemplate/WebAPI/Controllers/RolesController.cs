@@ -14,7 +14,7 @@ namespace JWTAuthTemplate.WebAPI.Controllers
         {
             _roleService = roleService;
         }
-
+        /*
         [HttpPut("{username}/{rolename}")]
         public async Task<IActionResult> AssignRole(string username, string rolename)
         {
@@ -34,5 +34,6 @@ namespace JWTAuthTemplate.WebAPI.Controllers
                 return Ok($"Role {rolename} revoked from {username}");
             });
         }
+        */
     }
 }
