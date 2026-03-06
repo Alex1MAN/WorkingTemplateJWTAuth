@@ -4,8 +4,7 @@ using JWTAuthTemplate.Models.Identity;
 
 namespace JWTAuthTemplate.Application.Services
 {
-    //public class RoleService : IRoleService
-    public class RoleService
+    public class RoleService : IRoleService
     {
         /*
         private readonly IRepository<ApplicationRole> _roleRepository;

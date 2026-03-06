@@ -21,18 +21,18 @@ namespace JWTAuthTemplate.Application.Services
             _tokenService = tokenService;
         }
 
-        public async Task<ActionResult> Register([FromBody] RegisterDTO registration)
+        public async Task<(bool Success, string ErrorMessage)> Register([FromBody] RegisterDTO registration)
         {
             // Логика регистрации пользователя
             var userExists = await _userManager.FindByNameAsync(registration.Username);
             var emailExists = await _userManager.FindByEmailAsync(registration.Email);
             if (userExists != null)
             {
-                return BadRequest("That username already exists!");
+                return (false, "That username already exists!");
             }
             if (emailExists != null)
             {
-                return BadRequest("That email is already in use!");
+                return (false, "That email is already in use!");
             }
             string bucketName = "";
             var user = new ApplicationUser()
@@ -43,7 +43,19 @@ namespace JWTAuthTemplate.Application.Services
                 UserName = registration.Username,
                 CreateDate = DateTime.UtcNow,
             };
-            
+
+            // Добавление пользователя в базу данных
+            var result = await _userManager.CreateAsync(user, registration.Password);
+            if (!result.Succeeded)
+            {
+                return (false, string.Join(", ", result.Errors.Select(e => e.Description)));
+            }
+
+            // Присвоение начальной роли
+            // await _userManager.AddToRoleAsync(user, "User");
+
+            return (true, "");
+
             /*
             // Minio позже
             bucketName = user.Id;
@@ -65,10 +77,12 @@ namespace JWTAuthTemplate.Application.Services
             */
         }
 
+        /*
         public async Task<AuthorizedDTO?> Authenticate(LoginDTO dto)
         {
             // Логика аутентификации пользователя
 
         }
+        */
     }
 }

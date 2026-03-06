@@ -4,7 +4,7 @@ namespace JWTAuthTemplate.Application.Interfaces
 {
     public interface IUserService
     {
-        Task Register(RegisterDTO dto);
-        Task<AuthorizedDTO?> Authenticate(LoginDTO dto);
+        Task<(bool Success, string ErrorMessage)> Register(RegisterDTO dto);
+        //Task<AuthorizedDTO?> Authenticate(LoginDTO dto);
     }
 }

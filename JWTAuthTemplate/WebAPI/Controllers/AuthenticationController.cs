@@ -23,6 +23,7 @@ namespace JWTAuthTemplate.WebAPI.Controllers
             return await ExecuteSafeAsync(() => _userService.Register(dto));
         }
 
+        /*
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDTO dto)
         {
@@ -42,5 +43,6 @@ namespace JWTAuthTemplate.WebAPI.Controllers
             var roles = await _roleService.GetAllRoles();
             return Ok(roles);
         }
+        */
     }
 }

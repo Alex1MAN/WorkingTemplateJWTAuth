@@ -1,14 +1,16 @@
 
 using System.Text;
-using JWTAuthTemplate.Context;
+using JWTAuthTemplate.Infrastructure.Database;
 using JWTAuthTemplate.Models.Identity;
+using JWTAuthTemplate.Application.Interfaces;
+using JWTAuthTemplate.Application.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using JWTAuthTemplate.DTO.Identity;
-using JWTAuthTemplate.Extensions;
+// using JWTAuthTemplate.Extensions;
 
 namespace JWTAuthTemplate.WebAPI
 {
@@ -31,7 +33,7 @@ namespace JWTAuthTemplate.WebAPI
             });
 
             builder.Services.Configure<MinioSettingsDTO>(builder.Configuration.GetSection("MinioSettings"));
-            builder.Services.AddSingleton<MinioService>();
+            //builder.Services.AddSingleton<MinioService>();
 
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
@@ -43,11 +45,11 @@ namespace JWTAuthTemplate.WebAPI
             var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING") ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
             //Add Postgres database
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            builder.Services.AddDbContext<Context>(options =>
             {
                 options.UseNpgsql(connectionString);
             });
-            using (var context = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+            using (var context = new Context(new DbContextOptionsBuilder<Context>()
                        .UseNpgsql(connectionString).Options))
             {
                 context.Database.Migrate();
@@ -55,7 +57,7 @@ namespace JWTAuthTemplate.WebAPI
 
             //Add identity
             builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
-                .AddEntityFrameworkStores<ApplicationDbContext>()
+                .AddEntityFrameworkStores<Context>()
                 .AddDefaultTokenProviders();
 
             //Set up JWT
@@ -89,7 +91,14 @@ namespace JWTAuthTemplate.WebAPI
 
             builder.Services.AddHttpContextAccessor();
 
-            builder.Services.AddScoped<TestMatrixService>();
+            //builder.Services.AddScoped<TestMatrixService>();
+
+
+            // Registration of IUserService and its dependency ITokenService
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<ITokenService, TokenService>();
+            builder.Services.AddScoped<IRoleService, RoleService>();
+
 
             if (builder.Environment.IsDevelopment())
             {

@@ -1,4 +1,5 @@
 ﻿using JWTAuthTemplate.Application.Interfaces;
+using JWTAuthTemplate.DTO.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JWTAuthTemplate.WebAPI.Controllers
@@ -15,6 +16,7 @@ namespace JWTAuthTemplate.WebAPI.Controllers
             _userService = userService;
         }
 
+        /*
         [HttpGet("{username}")]
         public async Task<IActionResult> Get(string username)
         {
@@ -23,5 +25,6 @@ namespace JWTAuthTemplate.WebAPI.Controllers
                 await _userService.GetByUsername(username);
             });
         }
+        */
     }
 }
