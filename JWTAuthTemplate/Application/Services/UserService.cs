@@ -10,15 +10,16 @@ namespace JWTAuthTemplate.Application.Services
     {
         //private readonly IRepository<ApplicationUser> _userRepository;
         private readonly UserManager<ApplicationUser> _userManager;
-
         private readonly ITokenService _tokenService;
+        private readonly IMinioService _minioService;
 
 
         //public UserService(IRepository<ApplicationUser> userRepository, ITokenService tokenService)
-        public UserService(UserManager<ApplicationUser> userManager, ITokenService tokenService)
+        public UserService(UserManager<ApplicationUser> userManager, ITokenService tokenService, IMinioService minioService)
         {
             _userManager = userManager;
             _tokenService = tokenService;
+            _minioService = minioService;
         }
 
         public async Task<(bool Success, string ErrorMessage)> Register([FromBody] RegisterDTO registration)
@@ -34,7 +35,7 @@ namespace JWTAuthTemplate.Application.Services
             {
                 return (false, "That email is already in use!");
             }
-            string bucketName = "";
+            
             var user = new ApplicationUser()
             {
                 Id = Guid.NewGuid().ToString(),
@@ -51,30 +52,20 @@ namespace JWTAuthTemplate.Application.Services
                 return (false, string.Join(", ", result.Errors.Select(e => e.Description)));
             }
 
-            // Присвоение начальной роли
-            // await _userManager.AddToRoleAsync(user, "User");
+            // Присвоение начальной роли - проверить также через if (!result.Succeeded)
+            // var result = await _userManager.AddToRoleAsync(user, "User");
 
-            return (true, "");
-
-            /*
-            // Minio позже
-            bucketName = user.Id;
+            // Создаем бакет в minio
+            string bucketName = user.Id;
             try
             {
-                var result = await _userManager.CreateAsync(user, registration.Password);
-                if (!result.Succeeded)
-                {
-                    return BadRequest(result.Errors);
-                }
-                // Создаем бакет в minio
                 await _minioService.CreateBucketAsync(bucketName);
-                return Ok(new { success = true, message = "User (and bucket in Minio) created successfully!" });
+                return (true, "User (and bucket in Minio) created successfully!");
             }
             catch (Exception e)
             {
-                return BadRequest(e.Message);
+                return (false, e.Message);
             }
-            */
         }
 
         /*

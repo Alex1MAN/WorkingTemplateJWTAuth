@@ -98,6 +98,7 @@ namespace JWTAuthTemplate.WebAPI
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddScoped<IRoleService, RoleService>();
+            builder.Services.AddScoped<IMinioService, MinioService>();
 
 
             if (builder.Environment.IsDevelopment())
