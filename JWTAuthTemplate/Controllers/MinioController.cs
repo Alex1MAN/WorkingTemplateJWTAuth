@@ -356,7 +356,7 @@ namespace JWTAuthTemplate.Controllers
         // ======================= Новые методы добавлять ниже
 
         [HttpGet("GetAllContentFromFiles")]
-        public async Task<IActionResult> GetAllContentFromFiles(string bucketName, [FromQuery] string[] fileNames, string allFilesExtension)
+        public async Task<IActionResult> GetAllContentFromFiles(string bucketName, [FromQuery] string[] fileNames, string allFilesExtension, double inputX1, double inputX2, double inputY1, double inputY2)
         {
             allFilesExtension = allFilesExtension.ToLower();
             switch (allFilesExtension)
@@ -364,10 +364,26 @@ namespace JWTAuthTemplate.Controllers
                 case var s when s.Contains("xls"):
                     try
                     {
-                        // Работа только с ПЕРВЫМ эксель файлом (если требуется работа с несколькими файлами - доработать метод)
-                        var resultTable = await _minioService.GetExcelFileContentAsJson(bucketName, fileNames[0]);
-                        GC.Collect();
-                        return Ok(resultTable);
+                        // Если все 4 границы равны, получаем весь контент, иначе - по границам
+                        if (inputX1 == inputX2 && inputX2 == inputY1 && inputY1 == inputY2)
+                        {
+                            // Работа только с ПЕРВЫМ эксель файлом (если требуется работа с несколькими файлами - доработать метод)
+                            var resultTable = await _minioService.GetExcelFileContentAsJson(bucketName, fileNames[0]);
+                            GC.Collect();
+                            return Ok(resultTable);
+                        }
+                        else
+                        {
+                            try
+                            {
+                                var resultTable = await _minioService.GetExcelFileContentAsJsonWithLimits(bucketName, fileNames[0], inputX1, inputX2, inputY1, inputY2);
+                                return Ok(resultTable);
+                            }
+                            catch (Exception ex)
+                            {
+                                return NotFound(new { message = ex.Message });
+                            }
+                        }
                     }
                     catch (Exception ex)
                     {
