@@ -1,8 +1,16 @@
 ﻿using JWTAuthTemplate.Application.Interfaces;
+using JWTAuthTemplate.Application.Services;
 using JWTAuthTemplate.DTO.Identity;
+using JWTAuthTemplate.Shared.Dtos;
 using JWTAuthTemplate.Models.Identity;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace JWTAuthTemplate.Application.Services
 {
@@ -21,6 +29,7 @@ namespace JWTAuthTemplate.Application.Services
             _tokenService = tokenService;
             _minioService = minioService;
         }
+
 
         public async Task<(bool Success, string ErrorMessage)> Register([FromBody] RegisterDTO registration)
         {
@@ -68,12 +77,43 @@ namespace JWTAuthTemplate.Application.Services
             }
         }
 
-        /*
-        public async Task<AuthorizedDTO?> Authenticate(LoginDTO dto)
+
+        public async Task<AuthResultDTO> Authenticate(LoginDTO login)
         {
             // Логика аутентификации пользователя
+            var user = await _userManager.FindByNameAsync(login.Username);
+            if (user == null)
+            {
+                throw new ValidationException("Invalid username or password!");
+            }
+            var result = await _userManager.CheckPasswordAsync(user, login.Password);
+            if (!result)
+            {
+                throw new ValidationException("Invalid username or password!");
+            }
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Name, user.UserName),
+            };
+            var token = _tokenService.CreateToken(claims.ToList());
+            var refreshToken = _tokenService.GenerateRefreshToken();
 
+            // Обновление информации о пользователе с новым refresh токеном (если требуется)
+            user.RefreshToken = refreshToken;
+            await _userManager.UpdateAsync(user);
+            return new AuthResultDTO
+            {
+                Token = new JwtSecurityTokenHandler().WriteToken(token),
+                RefreshToken = refreshToken,
+                User = new UserDTO
+                {
+                    Id = user.Id,
+                    Username = user.UserName,
+                    Email = user.Email,
+                    CreateDate = user.CreateDate
+                }
+            };
         }
-        */
     }
 }
