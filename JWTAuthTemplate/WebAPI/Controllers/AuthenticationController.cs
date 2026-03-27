@@ -58,6 +58,19 @@ namespace JWTAuthTemplate.WebAPI.Controllers
         }
 
 
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            return await ExecuteSafeAsync(async () => await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme));
+        }
+
+
+        [HttpPost("add-role")]
+        public async Task<IActionResult> AddRole([FromBody] RoleDTO role)
+        {
+            return await ExecuteSafeAsync(() => _roleService.AddRole(role));
+        }
+
         /*
         [HttpPost("add-role")]
         public async Task<IActionResult> AddRole([FromBody] RoleDTO dto)
@@ -72,5 +85,5 @@ namespace JWTAuthTemplate.WebAPI.Controllers
             return Ok(roles);
         }
         */
-    }
+        }
 }

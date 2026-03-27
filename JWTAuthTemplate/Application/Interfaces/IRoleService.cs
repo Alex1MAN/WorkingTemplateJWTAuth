@@ -8,5 +8,6 @@ namespace JWTAuthTemplate.Application.Interfaces
         Task<bool> CreateRole(RoleDTO dto);
         Task<IEnumerable<string>> GetAllRoles();
         */
+        Task<(bool Success, string ErrorMessage)> AddRole(RoleDTO dto);
     }
 }

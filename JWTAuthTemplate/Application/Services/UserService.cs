@@ -16,13 +16,11 @@ namespace JWTAuthTemplate.Application.Services
 {
     public class UserService : IUserService
     {
-        //private readonly IRepository<ApplicationUser> _userRepository;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ITokenService _tokenService;
         private readonly IMinioService _minioService;
 
 
-        //public UserService(IRepository<ApplicationUser> userRepository, ITokenService tokenService)
         public UserService(UserManager<ApplicationUser> userManager, ITokenService tokenService, IMinioService minioService)
         {
             _userManager = userManager;
@@ -115,5 +113,8 @@ namespace JWTAuthTemplate.Application.Services
                 }
             };
         }
+
+
+        
     }
 }
