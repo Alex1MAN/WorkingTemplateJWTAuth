@@ -4,6 +4,7 @@ using JWTAuthTemplate.Models.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
+using System.Globalization;
 
 namespace JWTAuthTemplate.Controllers
 {
@@ -112,6 +113,67 @@ namespace JWTAuthTemplate.Controllers
             if (latest == null)
                 return NotFound();
             return Ok(latest);
+        }
+
+        [HttpPost("GetAllStatusesByFileName")]
+        public async Task<IActionResult> GetAllStatusesByFileName(string userId, string fileName, string fileExtension)
+        {
+            var records = await _context.UserSessionStatuses
+                .Where(s => s.UserId == userId)
+                .ToListAsync();
+
+            records = records.Where(s =>
+                s.StatusParamsDict.TryGetValue("fileName", out var fn) && fn?.ToString() == fileName &&
+                s.StatusParamsDict.TryGetValue("fileExtension", out var fe) && fe?.ToString() == fileExtension)
+                .ToList();
+
+            if (!records.Any())
+                return Ok("File not found");
+
+            return Ok(records);
+        }
+
+        [HttpPost("GetLatestStatusByFileName")]
+        public async Task<IActionResult> GetLatestStatusByFileName(string userId, string fileName, string fileExtension)
+        {
+            var records = await _context.UserSessionStatuses
+                .Where(s => s.UserId == userId)
+                .OrderByDescending(s => s.ActualAt)
+                .ToListAsync();
+
+            var latestMatch = records
+                .FirstOrDefault(s =>
+                s.StatusParamsDict.TryGetValue("fileName", out var fn) && fn?.ToString() == fileName &&
+                s.StatusParamsDict.TryGetValue("fileExtension", out var fe) && fe?.ToString() == fileExtension);
+
+            if (latestMatch == null)
+                return Ok("File not found");
+
+            return Ok(latestMatch);
+        }
+
+        [HttpPost("GetLatestStatusByFileNameAndTime")]
+        public async Task<IActionResult> GetLatestStatusByFileNameAndTime(string userId, string fileName, string fileExtension, string timeFilter)
+        {
+            if (!DateTime.TryParseExact(timeFilter, "dd.MM.yyyy HH:mm:ss", null, DateTimeStyles.None, out var filterTime))
+                return BadRequest("Wrong date format: use DD.MM.YYYY HH:MM:SS");
+
+            filterTime = DateTime.SpecifyKind(filterTime, DateTimeKind.Utc); // Исправление ошибки
+
+            var records = await _context.UserSessionStatuses
+                .Where(s => s.UserId == userId && s.ActualAt >= filterTime)
+                .OrderBy(s => s.ActualAt)
+                .ToListAsync();
+
+            var firstMatch = records
+                .FirstOrDefault(s =>
+                s.StatusParamsDict.TryGetValue("fileName", out var fn) && fn?.ToString() == fileName &&
+                s.StatusParamsDict.TryGetValue("fileExtension", out var fe) && fe?.ToString() == fileExtension);
+
+            if (firstMatch == null)
+                return Ok("File not found");
+
+            return Ok(firstMatch);
         }
     }
 }
