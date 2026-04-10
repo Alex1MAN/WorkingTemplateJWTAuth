@@ -65,25 +65,5 @@ namespace JWTAuthTemplate.WebAPI.Controllers
         }
 
 
-        [HttpPost("add-role")]
-        public async Task<IActionResult> AddRole([FromBody] RoleDTO role)
-        {
-            return await ExecuteSafeAsync(() => _roleService.AddRole(role));
-        }
-
-        /*
-        [HttpPost("add-role")]
-        public async Task<IActionResult> AddRole([FromBody] RoleDTO dto)
-        {
-            return await ExecuteSafeAsync(() => _roleService.CreateRole(dto));
-        }
-
-        [HttpGet("get-roles")]
-        public async Task<IActionResult> GetRoles()
-        {
-            var roles = await _roleService.GetAllRoles();
-            return Ok(roles);
-        }
-        */
-        }
+    }
 }
