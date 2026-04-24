@@ -3,7 +3,9 @@ using JWTAuthTemplate.DTO.Identity;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace JWTAuthTemplate.WebAPI.Controllers
@@ -13,12 +15,12 @@ namespace JWTAuthTemplate.WebAPI.Controllers
     public class AuthenticationController : BaseController
     {
         private readonly IUserService _userService;
-        private readonly IRoleService _roleService;
+        private readonly ITokenService _tokenService;
 
-        public AuthenticationController(IUserService userService, IRoleService roleService)
+        public AuthenticationController(IUserService userService, ITokenService tokenService)
         {
             _userService = userService;
-            _roleService = roleService;
+            _tokenService = tokenService;
         }
 
 
@@ -65,5 +67,35 @@ namespace JWTAuthTemplate.WebAPI.Controllers
         }
 
 
+        [HttpPost("RefreshToken")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshDTO model)
+        {
+            try
+            {
+                var result = await _tokenService.RefreshTokensAsync(model.AccessToken, model.RefreshToken);
+                var response = new
+                {
+                    JWT = new
+                    {
+                        Token = new JwtSecurityTokenHandler().WriteToken(result.AccessToken),
+                        result.RefreshToken,
+                        Expiration = result.AccessToken.ValidTo
+                    },
+                    User = new
+                    {
+                        id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!,
+                        username = User.Identity!.Name!,
+                        email = User.FindFirst(ClaimTypes.Email)?.Value!,
+                        roles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value)
+                    }
+                };
+
+                return Ok(response);
+            }
+            catch (SecurityTokenException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

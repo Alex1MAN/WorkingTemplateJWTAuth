@@ -1,5 +1,8 @@
 ﻿using JWTAuthTemplate.Application.Interfaces;
+using JWTAuthTemplate.Models.Identity;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -13,15 +16,22 @@ namespace JWTAuthTemplate.Application.Services
     {
         private readonly IConfiguration _configuration;
         private readonly IOptionsMonitor<JwtBearerOptions> _jwtOptions;
+        
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly TokenValidationParameters _tokenValidationParameters;
 
-        public TokenService(IConfiguration configuration)
+
+        public TokenService(UserManager<ApplicationUser> userManager, IConfiguration configuration, TokenValidationParameters tokenValidationParameters)
         {
             _configuration = configuration;
+
+            _userManager = userManager;
+            _tokenValidationParameters = tokenValidationParameters;
         }
 
-        public JwtSecurityToken CreateToken(IEnumerable<Claim> claims)
+
+        public JwtSecurityToken CreateToken(List<Claim> claims)
         {
-            // Логика создания токена
             var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]!));
             _ = int.TryParse(_configuration["JWT:TokenValidityInDays"], out int tokenValidityInDays);
             var token = new JwtSecurityToken(
@@ -34,25 +44,54 @@ namespace JWTAuthTemplate.Application.Services
             return token;
         }
 
-        public ClaimsPrincipal ValidateToken(string token)
+
+        public ClaimsPrincipal? GetPrincipalFromExpiredToken(string? token)
         {
-            // Логика проверки токена
-            var options = _jwtOptions.Get(JwtBearerDefaults.AuthenticationScheme);
-            var tokenValidationParameters = options.TokenValidationParameters;
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
-            if (securityToken is not JwtSecurityToken jwtSecurityToken || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
-                throw new SecurityTokenException("Invalid token");
-            return principal;
+            try
+            {
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var principal = tokenHandler.ValidateToken(token!, _tokenValidationParameters, out SecurityToken validatedToken);
+
+                if (!(validatedToken is JwtSecurityToken jwtSecurityToken && jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase)))
+                    throw new SecurityTokenException("Invalid token");
+
+                return principal;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error validating token: {ex.Message}");
+                return null;
+            }
         }
+
 
         public string GenerateRefreshToken()
         {
-            // Генерация refresh-токена
             var randomNumber = new byte[64];
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(randomNumber);
             return Convert.ToBase64String(randomNumber);
+        }
+
+
+        public async Task<(JwtSecurityToken AccessToken, string RefreshToken)> RefreshTokensAsync(string accessToken, string refreshToken)
+        {
+            var principal = GetPrincipalFromExpiredToken(accessToken);
+            if (principal == null)
+                throw new SecurityTokenException("Invalid access token.");
+
+            var username = principal.Identity!.Name!;
+            var user = await _userManager.FindByNameAsync(username);
+            if (user == null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+                throw new SecurityTokenException("Invalid refresh token.");
+
+            var userRoles = await _userManager.GetRolesAsync(user);
+            var newAccessToken = CreateToken(principal.Claims.ToList());
+            var newRefreshToken = GenerateRefreshToken();
+            user.RefreshToken = newRefreshToken;
+            await _userManager.UpdateAsync(user);
+
+            return (newAccessToken, newRefreshToken);
         }
     }
 }

@@ -5,8 +5,12 @@ namespace JWTAuthTemplate.Application.Interfaces
 {
     public interface ITokenService
     {
-        JwtSecurityToken CreateToken(IEnumerable<Claim> claims);
-        ClaimsPrincipal ValidateToken(string token);
         string GenerateRefreshToken();
+
+        Task<(JwtSecurityToken AccessToken, string RefreshToken)> RefreshTokensAsync(string accessToken, string refreshToken);
+
+        ClaimsPrincipal? GetPrincipalFromExpiredToken(string? token);
+
+        JwtSecurityToken CreateToken(List<Claim> authClaims);
     }
 }

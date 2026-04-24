@@ -44,6 +44,28 @@ namespace JWTAuthTemplate.WebAPI
             builder.Configuration["JWT:ValidIssuer"] = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? builder.Configuration["JWT:ValidIssuer"];
             var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING") ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
+
+            builder.Services.AddSingleton<TokenValidationParameters>(sp =>
+            {
+                var config = sp.GetRequiredService<IConfiguration>();
+
+                var secretKey = Encoding.UTF8.GetBytes(config["JWT:Secret"]!);
+                var symmetricSecurityKey = new SymmetricSecurityKey(secretKey);
+
+                return new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = symmetricSecurityKey,
+                    ValidateIssuer = true,
+                    ValidIssuer = config["JWT:ValidIssuer"],
+                    ValidateAudience = true,
+                    ValidAudience = config["JWT:ValidAudience"],
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                };
+            });
+
+
             //Add Postgres database
             builder.Services.AddDbContext<Context>(options =>
             {
@@ -94,7 +116,7 @@ namespace JWTAuthTemplate.WebAPI
             //builder.Services.AddScoped<TestMatrixService>();
 
 
-            // Registration of IUserService and its dependency ITokenService
+            // Registration
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddScoped<IRoleService, RoleService>();
