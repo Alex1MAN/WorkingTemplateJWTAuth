@@ -89,7 +89,6 @@ namespace JWTAuthTemplate.WebAPI.Controllers
                         roles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value)
                     }
                 };
-
                 return Ok(response);
             }
             catch (SecurityTokenException ex)

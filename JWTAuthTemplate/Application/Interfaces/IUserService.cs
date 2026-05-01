@@ -8,5 +8,6 @@ namespace JWTAuthTemplate.Application.Interfaces
     {
         Task<(bool Success, string ErrorMessage)> Register(RegisterDTO dto);
         Task<AuthResultDTO> Authenticate(LoginDTO dto);
+        Task<UserDTO?> GetByUsername(string username);
     }
 }

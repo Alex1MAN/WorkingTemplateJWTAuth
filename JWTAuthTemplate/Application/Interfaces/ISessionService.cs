@@ -4,7 +4,8 @@ namespace JWTAuthTemplate.Application.Interfaces
 {
     public interface ISessionService
     {
-        Task SaveUserSessionStatus(string userid, [FromBody] Dictionary<string, object> statusParams);
-        Task GetLatestUserSessionStatus(string userid);
+        Task<(bool Success, string ErrorMessage)> SaveStatus(string userid, [FromBody] Dictionary<string, object> statusParams);
+        
+        //Task GetLatestUserSessionStatus(string userid);
     }
 }

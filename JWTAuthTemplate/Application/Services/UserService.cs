@@ -1,16 +1,13 @@
 ﻿using JWTAuthTemplate.Application.Interfaces;
-using JWTAuthTemplate.Application.Services;
 using JWTAuthTemplate.DTO.Identity;
 using JWTAuthTemplate.Shared.Dtos;
 using JWTAuthTemplate.Models.Identity;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
 namespace JWTAuthTemplate.Application.Services
 {
@@ -115,6 +112,27 @@ namespace JWTAuthTemplate.Application.Services
         }
 
 
-        
+        public async Task<UserDTO?> GetByUsername(string username)
+        {
+            var user = await _userManager.Users.Where(u => u.UserName == username).Select(x => new UserDTO()
+            {
+                Id = x.Id,
+                Username = x.UserName,
+                CreateDate = x.CreateDate,
+                Roles = new List<UserRoleDTO>(x.Roles.Select(r => new UserRoleDTO()
+                {
+                    Role = new RoleDTO()
+                    {
+                        Id = r.Role.Id,
+                        Name = r.Role.Name,
+                    }
+                })),
+            }).FirstOrDefaultAsync();
+            if (user == null)
+            {
+                return null;
+            }
+            return user;
+        }
     }
 }

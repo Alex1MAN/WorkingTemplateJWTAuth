@@ -15,22 +15,24 @@ namespace JWTAuthTemplate.WebAPI.Controllers
             _sessionService = sessionService;
         }
 
-        [HttpPost("save-status/{userid}")]
-        public async Task<IActionResult> SaveStatus(string userid, [FromBody] Dictionary<string, object> statusParams)
+
+        [HttpPost("save-status")]
+        public async Task<IActionResult> Save(string userid, [FromBody] Dictionary<string, object> statusParams)
         {
             return await ExecuteSafeAsync(async () =>
             {
-                await _sessionService.SaveUserSessionStatus(userid, statusParams);
+                await _sessionService.SaveStatus(userid, statusParams);
             });
         }
 
-        [HttpGet("latest-status/{userid}")]
+
+        /*[HttpGet("latest-status/{userid}")]
         public async Task<IActionResult> GetLatestStatus(string userid)
         {
             return await ExecuteSafeAsync(async () =>
             {
                 await _sessionService.GetLatestUserSessionStatus(userid);
             });
-        }
+        }*/
     }
 }

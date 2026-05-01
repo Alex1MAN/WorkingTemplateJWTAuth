@@ -16,15 +16,16 @@ namespace JWTAuthTemplate.WebAPI.Controllers
             _userService = userService;
         }
 
-        /*
-        [HttpGet("{username}")]
+        
+        [HttpGet("get-by-username")]
         public async Task<IActionResult> Get(string username)
         {
-            return await ExecuteSafeAsync(async () =>
+            var userDto = await _userService.GetByUsername(username);
+            if (userDto is null)
             {
-                await _userService.GetByUsername(username);
-            });
+                return NotFound($"User with username '{username}' was not found");
+            }
+            return Ok(userDto);
         }
-        */
     }
 }
