@@ -16,11 +16,124 @@ namespace JWTAuthTemplate.Controllers
     {
         private readonly MinioService _minioService;
         private readonly ApplicationDbContext _context;
+        private readonly string _tempRoot;  // Убрать в develop работу с временными файлами
 
-        public MinioController(MinioService minioService, ApplicationDbContext context)
+        public MinioController(MinioService minioService, ApplicationDbContext context, IWebHostEnvironment env)
         {
             _minioService = minioService;
             _context = context;
+            _tempRoot = Path.Combine(env.ContentRootPath, "UploadsTemp");
+            if (!Directory.Exists(_tempRoot))
+                Directory.CreateDirectory(_tempRoot);  // Убрать в develop работу с временными файлами
+        }
+
+
+        // Убрать в develop работу с временными файлами
+        [HttpPost("UploadChunk")]
+        [RequestSizeLimit(long.MaxValue)]
+        public async Task<IActionResult> UploadChunk([FromForm] string bucketName,
+                                                     [FromForm] string uploadId,
+                                                     [FromForm] string fileName,
+                                                     [FromForm] int chunkIndex,
+                                                     [FromForm] int totalChunks,
+                                                     [FromForm] IFormFile? chunk)
+        {
+            if (chunk == null) return BadRequest("Chunk missing");
+
+            // Папка для текущей сессии загрузки
+            var sessionDir = Path.Combine(_tempRoot, SanitizePath(bucketName), SanitizePath(uploadId));
+            Directory.CreateDirectory(sessionDir);
+
+            // Сохраняем чанк под именем индексного файла, чтобы потом объединить в порядке
+            var chunkPath = Path.Combine(sessionDir, $"{chunkIndex}.part");
+            using (var fs = new FileStream(chunkPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                await chunk.CopyToAsync(fs);
+            }
+
+            // Можно вернуть простой статус; клиент продолжит отправку следующих чанков
+            return Ok(new { success = true, chunkIndex });
+        }
+
+        
+        // Убрать в develop работу с временными файлами
+        [HttpPost("CompleteUpload")]
+        public async Task<IActionResult> CompleteUpload([FromBody] CompleteUploadRequest req)
+        {
+            if (req == null) return BadRequest("Invalid request");
+            if (string.IsNullOrWhiteSpace(req.BucketName)) return BadRequest("BucketName is required");
+            if (string.IsNullOrWhiteSpace(req.FileName)) return BadRequest("FileName is required");
+            if (string.IsNullOrWhiteSpace(req.UploadId)) return BadRequest("UploadId is required");
+            if (req.TotalChunks <= 0) return BadRequest("TotalChunks must be > 0");
+
+            var sessionDir = Path.Combine(_tempRoot,
+                SanitizePath(req.BucketName),
+                SanitizePath(req.UploadId));
+
+            if (!Directory.Exists(sessionDir))
+                return NotFound("Upload session not found");
+
+            var finalDir = Path.Combine(_tempRoot, "Completed", SanitizePath(req.BucketName));
+            Directory.CreateDirectory(finalDir);
+
+            var tempFinalPath = Path.Combine(finalDir, SanitizePath(req.FileName));
+
+            // 1) Собираем чанки в один временный файл на диске
+            using (var output = new FileStream(tempFinalPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                for (int i = 0; i < req.TotalChunks; i++)
+                {
+                    var partPath = Path.Combine(sessionDir, $"{i}.part");
+                    if (!System.IO.File.Exists(partPath))
+                        return BadRequest($"Missing chunk {i}");
+
+                    using (var partStream = new FileStream(partPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        await partStream.CopyToAsync(output);
+                    }
+                }
+            }
+
+            string? etag = null;
+            try
+            {
+                // 2) Загружаем итоговый файл в MinIO (как раньше в UploadFilesUpdateReferences)
+                await _minioService.UploadFileAsync(req.BucketName, req.FileName, tempFinalPath);
+
+                // 3) Получаем ссылку/ETag как раньше
+                etag = await _minioService.GetObjectETagAsync(req.BucketName, req.FileName);
+
+                // 4) Записываем reference в БД (как раньше)
+                var reference = new UserReferencesInMinio
+                {
+                    UserId = req.BucketName,
+                    FileName = req.FileName,
+                    FileExtension = Path.GetExtension(req.FileName).Replace(".", ""),
+                    FileReferenceMinio = etag
+                };
+
+                _context.UserReferencesInMinio.Add(reference);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { success = true, fileName = req.FileName, fileReferenceMinio = etag });
+            }
+            finally
+            {
+                // 5) Чистим temp-чашки/директории (как раньше clean tempFilePath в foreach)
+                try { if (Directory.Exists(sessionDir)) Directory.Delete(sessionDir, true); } catch { }
+                try { if (System.IO.File.Exists(tempFinalPath)) System.IO.File.Delete(tempFinalPath); } catch { }
+            }
+        }
+
+        
+        // Убрать в develop работу с временными файлами
+        private static string SanitizePath(string input)
+        {
+            foreach (var c in Path.GetInvalidFileNameChars())
+            {
+                input = input.Replace(c, '_');
+            }
+            return input;
         }
 
 
