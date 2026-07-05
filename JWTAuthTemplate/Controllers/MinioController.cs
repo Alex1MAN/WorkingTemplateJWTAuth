@@ -145,7 +145,7 @@ namespace JWTAuthTemplate.Controllers
         }
 
         
-        // Основной метод загрузки файлов
+        // Основной метод загрузки файлов (устарело)
         [HttpPost("UploadFilesUpdateReferences")]
         public async Task<IActionResult> UploadFilesUpdateReferences(
             [FromForm] string bucketName,
@@ -242,6 +242,13 @@ namespace JWTAuthTemplate.Controllers
 
             var references = new List<UserReferencesInMinio>();
 
+            // Получаем существующие (FileName + FileExtension) для данного пользователя
+            var existingKeys = await _context.UserReferencesInMinio
+                .Where(ur => ur.UserId == bucketName)
+                .Select(ur => ur.FileName + "|||" + ur.FileExtension)
+                .ToListAsync();
+            var existingSet = new HashSet<string>(existingKeys);
+
             foreach (var fileData in filesData)
             {
                 if (fileData == null || fileData.Length == 0)
@@ -251,6 +258,13 @@ namespace JWTAuthTemplate.Controllers
 
                 var fileName = fileData.FileName;
                 var fileExtension = Path.GetExtension(fileName).Replace(".", "");
+
+                // Проверка уникальности по (FileName, FileExtension)
+                var fileKey = fileName + "|||" + fileExtension;
+                if (existingSet.Contains(fileKey))
+                {
+                    return BadRequest($"File '{fileName}' already exists in the database. Please rename the file and try again.");
+                }
 
                 try
                 {
@@ -264,9 +278,6 @@ namespace JWTAuthTemplate.Controllers
                     string fileUrl;
                     using (StreamReader reader = new StreamReader(streamUrl))
                     {
-                        //fileUrl = await reader.ReadToEndAsync(); // Проблема тут, т.к. "в fileUrl пишется весь поток данных, а не только поле ETAG которое нам нужно"
-
-                        // 13.12.2025 корректировка
                         fileUrl = await _minioService.GetObjectETagAsync(bucketName, fileName);
                     }
 
