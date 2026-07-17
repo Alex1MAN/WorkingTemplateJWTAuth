@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 
@@ -22,5 +22,8 @@ namespace JWTAuthTemplate.Models.Identity
             get => JsonSerializer.Deserialize<Dictionary<string, object>>(StatusParams);
             set => StatusParams = JsonSerializer.Serialize(value);
         }
+
+        public string FileExtension { get; set; }
+        public string FileName { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace JWTAuthTemplate.DTO.Identity
+namespace JWTAuthTemplate.DTO.Identity
 {
     public class UserSessionStatusDTO
     {
@@ -6,5 +6,7 @@
         public string UserId { get; set; }
         public DateTime ActualAt { get; set; }
         public Dictionary<string, object>? StatusParamsDict { get; set; }
+        public string FileExtension { get; set; }
+        public string FileName { get; set; }
     }
 }
