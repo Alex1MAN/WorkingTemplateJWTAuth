@@ -94,7 +94,8 @@ namespace JWTAuthTemplate.Application.Services
                 .Where(u => u.StatusParamsDict != null &&
                             u.StatusParamsDict.TryGetValue("fileName", out var fileNameValue) &&
                             fileNameValue?.ToString() == fileName &&
-                            u.FileExtension == fileExtension);
+u.StatusParamsDict.TryGetValue("fileExtension", out var fileExtensionValue) &&
+                            fileExtensionValue?.ToString() == fileExtension);
             
         }
 
@@ -126,7 +127,8 @@ namespace JWTAuthTemplate.Application.Services
                 .FirstOrDefault(u => u.StatusParamsDict != null &&
                                      u.StatusParamsDict.TryGetValue("fileName", out var fileNameValue) &&
                                      fileNameValue?.ToString() == fileName &&
-                                     u.FileExtension == fileExtension);
+         u.StatusParamsDict.TryGetValue("fileExtension", out var fileExtensionValue) &&
+                            fileExtensionValue?.ToString() == fileExtension);
         }
 
 
@@ -161,7 +163,8 @@ namespace JWTAuthTemplate.Application.Services
                 .FirstOrDefault(u => u.StatusParamsDict != null &&
                                      u.StatusParamsDict.TryGetValue("fileName", out var fileNameValue) &&
                                      fileNameValue?.ToString() == fileName &&
-                                     u.FileExtension == fileExtension);
+         u.StatusParamsDict.TryGetValue("fileExtension", out var fileExtensionValue) &&
+                            fileExtensionValue?.ToString() == fileExtension);
         }
     }
 }
