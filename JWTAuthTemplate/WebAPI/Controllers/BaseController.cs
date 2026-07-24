@@ -1,44 +1,40 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
-namespace JWTAuthTemplate.WebAPI.Controllers
+namespace JWTAuthTemplate.WebAPI.Controllers;
+
+public abstract class BaseController : ControllerBase
 {
-    public abstract class BaseController : ControllerBase
+    protected async Task<IActionResult> ExecuteSafeAsync(Func<Task> action)
     {
-        // Для операций без возврата данных (POST/DELETE/PUT без тела)
-        protected async Task<IActionResult> ExecuteSafeAsync(Func<Task> action)
+        try
         {
-            try
-            {
-                await action();
-                return Ok();
-            }
-            catch (ValidationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return Problem(statusCode: 500, detail: ex.Message);
-            }
+            await action();
+            return Ok();
         }
-
-
-        // Для операций с возвратом IActionResult (GET/POST с возвратом)
-        protected async Task<IActionResult> ExecuteSafeAsync(Func<Task<IActionResult>> action)
+        catch (ValidationException ex)
         {
-            try
-            {
-                return await action();
-            }
-            catch (ValidationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return Problem(statusCode: 500, detail: ex.Message);
-            }
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return Problem(statusCode: 500, detail: ex.Message);
+        }
+    }
+
+    protected async Task<IActionResult> ExecuteSafeAsync(Func<Task<IActionResult>> action)
+    {
+        try
+        {
+            return await action();
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return Problem(statusCode: 500, detail: ex.Message);
         }
     }
 }
